@@ -1,0 +1,98 @@
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import {
+  getFirestore
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+
+// ---------------- Current user (simple pick, no password) ----------------
+const USER_KEY = 'trylist_user';
+export function getCurrentUser() {
+  return localStorage.getItem(USER_KEY);
+}
+function setCurrentUser(name) {
+  localStorage.setItem(USER_KEY, name);
+}
+
+function showLoginGate() {
+  document.getElementById('login-gate').classList.remove('hidden');
+  document.getElementById('landing').classList.add('hidden');
+}
+
+function hideLoginGate() {
+  document.getElementById('login-gate').classList.add('hidden');
+  document.getElementById('landing-user-name').textContent = getCurrentUser();
+}
+
+document.querySelectorAll('.login-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setCurrentUser(btn.dataset.user);
+    hideLoginGate();
+    navigate('home');
+  });
+});
+
+document.getElementById('switch-user-btn').addEventListener('click', () => {
+  showLoginGate();
+});
+
+// ---------------- Router ----------------
+const SECTIONS = ['home', 'watch', 'food', 'activities'];
+
+export function navigate(route) {
+  if (!SECTIONS.includes(route)) route = 'home';
+  window.location.hash = route;
+  render(route);
+}
+
+function render(route) {
+  document.getElementById('landing').classList.toggle('hidden', route !== 'home');
+  document.getElementById('section-watch').classList.toggle('hidden', route !== 'watch');
+  document.getElementById('section-food').classList.toggle('hidden', route !== 'food');
+  document.getElementById('section-activities').classList.toggle('hidden', route !== 'activities');
+
+  const tabBar = document.getElementById('tab-bar');
+  tabBar.classList.toggle('hidden', route === 'home');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === route);
+  });
+
+  window.scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent('route-changed', { detail: { route } }));
+}
+
+document.querySelectorAll('[data-route]').forEach(el => {
+  el.addEventListener('click', () => navigate(el.dataset.route));
+});
+
+document.querySelectorAll('[data-close-modal]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById(el.dataset.closeModal).classList.add('hidden');
+  });
+});
+
+// ---------------- Boot ----------------
+function boot() {
+  if (getCurrentUser()) {
+    hideLoginGate();
+    const initialRoute = window.location.hash.replace('#', '') || 'home';
+    render(SECTIONS.includes(initialRoute) ? initialRoute : 'home');
+  } else {
+    showLoginGate();
+  }
+}
+
+boot();
+
+// Load section modules after boot (they attach their own listeners)
+import './watch.js';
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Non-fatal — app still works without offline caching
+    });
+  });
+}
