@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trylist-v6';
+const CACHE_NAME = 'trylist-v7';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,13 +27,23 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Network-first for Firestore/API calls, cache-first for app shell
+// Network-first for the app shell: always try to get the latest version first,
+// and only fall back to the cached copy if the network request fails (e.g. offline).
+// This avoids ever getting "stuck" on an old cached version after an update.
 self.addEventListener('fetch', event => {
   const url = event.request.url;
   if (url.includes('firestore.googleapis.com') || url.includes('firebaseapp.com')) {
     return; // let these go straight to network, don't intercept
   }
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
