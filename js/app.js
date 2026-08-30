@@ -1,21 +1,7 @@
-import { firebaseConfig } from './firebase-config.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import {
-  getFirestore
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getCurrentUser, setCurrentUser } from './user.js';
+import './watch.js';
 
-export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-
-// ---------------- Current user (simple pick, no password) ----------------
-const USER_KEY = 'trylist_user';
-export function getCurrentUser() {
-  return localStorage.getItem(USER_KEY);
-}
-function setCurrentUser(name) {
-  localStorage.setItem(USER_KEY, name);
-}
-
+// ---------------- Login gate ----------------
 function showLoginGate() {
   document.getElementById('login-gate').classList.remove('hidden');
   document.getElementById('landing').classList.add('hidden');
@@ -85,9 +71,6 @@ function boot() {
 }
 
 boot();
-
-// Load section modules after boot (they attach their own listeners)
-import './watch.js';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

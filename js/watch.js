@@ -1,4 +1,5 @@
-import { db, getCurrentUser } from './app.js';
+import { db } from './firebase.js';
+import { getCurrentUser } from './user.js';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
   onSnapshot, query, orderBy, serverTimestamp
