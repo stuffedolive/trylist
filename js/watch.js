@@ -19,7 +19,17 @@ let selectedStatus = 'to_watch';   // for the add/edit form's status toggle
 let selectedRateLocation = 'home';
 let selectedStars = 0;
 let currentEditId = null;
-let statusFilter = 'to_watch';     // for the filter bar toggle
+let statusFilterIndex = 0;  // filter bar: To Watch / Watched
+let formatFilterIndex = 0;  // filter bar: Movie+Series / Movies / Series
+const STATUS_FILTER_STATES = [
+  { value: 'to_watch', label: 'To Watch' },
+  { value: 'watched', label: 'Watched' }
+];
+const FORMAT_FILTER_STATES = [
+  { value: 'all', label: 'Movie + Series' },
+  { value: 'movie', label: 'Movies' },
+  { value: 'series', label: 'Series' }
+];
 
 // ---------------- Star rendering (real half-star support, no special glyph) ----------------
 function starsHtml(value, sizeClass = '') {
@@ -99,15 +109,19 @@ document.querySelectorAll('#rate-field-location .segmented-btn').forEach(btn => 
   });
 });
 
-// Filter bar status toggle (To Watch / Watched — no "all")
-document.querySelectorAll('#watch-status-toggle .segmented-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    statusFilter = btn.dataset.value;
-    document.querySelectorAll('#watch-status-toggle .segmented-btn').forEach(b =>
-      b.classList.toggle('active', b === btn)
-    );
-    renderList();
-  });
+// Filter bar: tap-to-cycle buttons (To Watch/Watched, and Movie+Series/Movies/Series)
+const statusCycleBtn = document.getElementById('watch-status-cycle');
+statusCycleBtn.addEventListener('click', () => {
+  statusFilterIndex = (statusFilterIndex + 1) % STATUS_FILTER_STATES.length;
+  statusCycleBtn.textContent = STATUS_FILTER_STATES[statusFilterIndex].label;
+  renderList();
+});
+
+const formatCycleBtn = document.getElementById('watch-format-cycle');
+formatCycleBtn.addEventListener('click', () => {
+  formatFilterIndex = (formatFilterIndex + 1) % FORMAT_FILTER_STATES.length;
+  formatCycleBtn.textContent = FORMAT_FILTER_STATES[formatFilterIndex].label;
+  renderList();
 });
 
 // ---------------- Live data ----------------
@@ -121,15 +135,13 @@ onSnapshot(query(colRef, orderBy('createdAt', 'desc')), snap => {
   }
 });
 
-['watch-filter-format', 'watch-filter-tag', 'watch-filter-addedby']
-  .forEach(id => document.getElementById(id).addEventListener('change', renderList));
+document.getElementById('watch-filter-tag').addEventListener('change', renderList);
 
 function getFilters() {
   return {
-    status: statusFilter,
-    format: document.getElementById('watch-filter-format').value,
-    tag: document.getElementById('watch-filter-tag').value,
-    addedBy: document.getElementById('watch-filter-addedby').value
+    status: STATUS_FILTER_STATES[statusFilterIndex].value,
+    format: FORMAT_FILTER_STATES[formatFilterIndex].value,
+    tag: document.getElementById('watch-filter-tag').value
   };
 }
 
@@ -155,7 +167,6 @@ function renderList() {
     if (item.status !== f.status) return false;
     if (f.format !== 'all' && item.format !== f.format) return false;
     if (f.tag !== 'all' && !(item.tags || []).includes(f.tag)) return false;
-    if (f.addedBy !== 'all' && item.addedBy !== f.addedBy) return false;
     return true;
   });
 
@@ -245,6 +256,11 @@ function openDetailModal(item) {
 }
 
 function renderRatingsSection(item) {
+  const isWatched = item.status === 'watched';
+  document.getElementById('watch-rating-hint').classList.toggle('hidden', isWatched);
+  document.getElementById('watch-ratings-block').classList.toggle('hidden', !isWatched);
+  if (!isWatched) return;
+
   const me = getCurrentUser();
   const other = USERS.find(u => u !== me) || USERS[0];
 

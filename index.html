@@ -16,6 +16,8 @@
 </head>
 <body>
 
+<div id="version-badge" class="version-badge"></div>
+
 <!-- LOGIN GATE -->
 <div id="login-gate" class="login-gate">
   <div class="login-card">
@@ -63,22 +65,10 @@
   </header>
 
   <div class="filter-bar" id="watch-filter-bar">
-    <div class="segmented status-toggle" id="watch-status-toggle">
-      <button type="button" class="segmented-btn active" data-value="to_watch">To Watch</button>
-      <button type="button" class="segmented-btn" data-value="watched">Watched</button>
-    </div>
-    <select id="watch-filter-format" class="filter-select">
-      <option value="all">Movie + Series</option>
-      <option value="movie">Movies</option>
-      <option value="series">Series</option>
-    </select>
+    <button type="button" class="cycle-btn" id="watch-status-cycle">To Watch</button>
+    <button type="button" class="cycle-btn" id="watch-format-cycle">Movie + Series</button>
     <select id="watch-filter-tag" class="filter-select">
       <option value="all">All genres</option>
-    </select>
-    <select id="watch-filter-addedby" class="filter-select">
-      <option value="all">Anyone</option>
-      <option value="Jade">Jade</option>
-      <option value="John">John</option>
     </select>
   </div>
 
@@ -128,9 +118,10 @@
 <!-- ADD / DETAIL MODAL -->
 <div id="watch-modal" class="modal hidden">
   <div class="modal-sheet theme-watch">
-    <header class="modal-header">
-      <h3 id="watch-modal-title">Add something to watch</h3>
+    <header class="modal-header sticky-header">
       <button class="modal-close" data-close-modal="watch-modal">✕</button>
+      <h3 id="watch-modal-title">Add something to watch</h3>
+      <button type="submit" form="watch-form" class="modal-save-btn">Save</button>
     </header>
     <form id="watch-form">
       <label class="field-label">Title</label>
@@ -157,31 +148,33 @@
         </div>
 
         <div class="section-divider">Ratings</div>
-        <div id="watch-ratings-others"></div>
+        <p id="watch-rating-hint" class="rating-hint hidden">Mark as watched to add a rating.</p>
+        <div id="watch-ratings-block">
+          <div id="watch-ratings-others"></div>
 
-        <div id="watch-rate-own">
-          <label class="field-label" id="watch-rate-own-label">Your rating</label>
-          <div class="star-picker" id="star-picker"></div>
+          <div id="watch-rate-own">
+            <label class="field-label" id="watch-rate-own-label">Your rating</label>
+            <div class="star-picker" id="star-picker"></div>
 
-          <label class="field-label">Watched at</label>
-          <div class="segmented" id="rate-field-location">
-            <button type="button" class="segmented-btn active" data-value="home">Home</button>
-            <button type="button" class="segmented-btn" data-value="cinema">Cinema</button>
+            <label class="field-label">Watched at</label>
+            <div class="segmented" id="rate-field-location">
+              <button type="button" class="segmented-btn active" data-value="home">Home</button>
+              <button type="button" class="segmented-btn" data-value="cinema">Cinema</button>
+            </div>
+
+            <label class="field-label">Review (optional)</label>
+            <textarea id="rate-field-review" class="field-input field-textarea" rows="3"></textarea>
+
+            <button type="button" id="watch-add-rating-btn" class="btn-secondary">Save rating</button>
           </div>
 
-          <label class="field-label">Review (optional)</label>
-          <textarea id="rate-field-review" class="field-input field-textarea" rows="3"></textarea>
-
-          <button type="button" id="watch-add-rating-btn" class="btn-secondary">Save rating</button>
+          <div id="watch-rate-history" class="rate-history"></div>
         </div>
-
-        <div id="watch-rate-history" class="rate-history"></div>
       </div>
 
       <input type="hidden" id="watch-field-id" />
       <div class="modal-actions">
         <button type="button" id="watch-delete-btn" class="btn-danger hidden">Delete</button>
-        <button type="submit" class="btn-primary">Save</button>
       </div>
     </form>
   </div>

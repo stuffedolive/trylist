@@ -51,11 +51,19 @@ button { font-family: inherit; cursor: pointer; }
 .hidden { display: none !important; }
 .link-btn { background: none; border: none; text-decoration: underline; color: inherit; font: inherit; padding: 0; }
 
+.version-badge {
+  position: fixed; top: calc(env(safe-area-inset-top) + 6px); right: 10px;
+  z-index: 100; font-family: var(--font-mono); font-size: 0.62rem;
+  color: rgba(255,255,255,0.75); background: rgba(0,0,0,0.35);
+  padding: 2px 7px; border-radius: 8px; pointer-events: none;
+}
+
 /* ---------- Login gate ---------- */
 .login-gate {
   position: fixed; inset: 0; z-index: 50;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-app);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
 .login-card { text-align: center; color: var(--text-on-dark); }
 .login-title {
@@ -74,7 +82,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Landing ---------- */
 .landing {
-  min-height: 100vh; padding: 48px 20px 24px;
+  min-height: 100vh; padding: calc(48px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; align-items: center;
   color: var(--text-on-dark);
 }
@@ -123,10 +131,11 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- App sections (shared shell) ---------- */
 .app-section {
-  min-height: 100vh; padding-bottom: 90px;
+  min-height: 100vh; padding-bottom: calc(90px + env(safe-area-inset-bottom));
 }
 .section-header {
-  display: flex; align-items: center; gap: 12px; padding: 18px 16px 10px;
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(18px + env(safe-area-inset-top)) 16px 10px;
   position: sticky; top: 0; z-index: 5; backdrop-filter: blur(6px);
 }
 .home-btn, .add-btn {
@@ -143,8 +152,12 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 20px; padding: 7px 12px; font-size: 0.82rem; border: 1px solid;
   font-family: var(--font-body); white-space: nowrap;
 }
+.cycle-btn {
+  border-radius: 20px; padding: 7px 14px; font-size: 0.82rem; border: 1px solid;
+  font-family: var(--font-body); white-space: nowrap; font-weight: 600; flex-shrink: 0;
+}
+.cycle-btn::after { content: " ⇄"; opacity: 0.5; font-size: 0.75em; }
 
-.card-grid { padding: 4px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
 .empty-state { text-align: center; padding: 40px 20px; opacity: 0.6; font-size: 0.9rem; }
 .coming-soon { padding: 60px 24px; text-align: center; opacity: 0.75; }
 
@@ -171,9 +184,17 @@ button { font-family: inherit; cursor: pointer; }
   width: 100%; max-height: 88vh; overflow-y: auto;
   border-radius: 20px 20px 0 0; padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.modal-header h3 { margin: 0; font-size: 1.15rem; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.modal-header.sticky-header {
+  position: sticky; top: 0; z-index: 10; margin: -20px -20px 14px;
+  padding: calc(16px + env(safe-area-inset-top)) 20px 14px;
+}
+.modal-header h3 { margin: 0; font-size: 1.05rem; flex: 1; text-align: center; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .modal-close { border: none; background: transparent; font-size: 1.1rem; }
+.modal-save-btn { border: none; background: transparent; font-size: 0.95rem; font-weight: 700; padding: 4px 2px; }
+.rating-hint { font-size: 0.85rem; opacity: 0.6; margin: 0 0 10px; }
 
 .field-label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; margin: 16px 0 6px; }
 .field-input {
@@ -227,6 +248,9 @@ button { font-family: inherit; cursor: pointer; }
 }
 .theme-watch .field-label { color: var(--watch-text-dim); }
 .theme-watch .modal-close { color: var(--watch-text-dim); }
+.theme-watch .modal-header.sticky-header { background: var(--watch-bg); border-bottom: 1px solid #24262d; }
+.theme-watch .modal-save-btn { color: var(--watch-accent); }
+.theme-watch .rating-hint { color: var(--watch-text-dim); }
 .theme-watch .meta-line { color: var(--watch-text-dim); font-size: 0.82rem; margin: 14px 0 0; }
 .theme-watch .section-divider {
   margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid #2a2c33;
@@ -253,8 +277,8 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- List-style row (replaces the old poster card) ---------- */
 .watch-row {
-  position: relative; border-radius: 10px; padding: 14px 14px 14px 18px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: relative; border-radius: 10px; padding: 10px 12px 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
   border-left: 4px solid var(--watch-accent);
   background: var(--watch-row-to-watch);
 }
@@ -264,15 +288,16 @@ button { font-family: inherit; cursor: pointer; }
 }
 .watch-row-main { min-width: 0; flex: 1; }
 .watch-row-title {
-  font-family: var(--font-watch); font-size: 1.25rem; letter-spacing: 0.01em;
+  font-family: var(--font-watch); font-size: 1.1rem; letter-spacing: 0.01em;
   margin: 0; line-height: 1.15; color: var(--watch-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .watch-row-sub {
-  margin-top: 3px; font-size: 0.75rem; color: var(--watch-text-dim);
+  margin-top: 1px; font-size: 0.62rem; color: var(--watch-text-dim);
   font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.card-grid { padding: 4px 16px 24px; display: flex; flex-direction: column; gap: 8px; }
 .watch-row-ratings { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex-shrink: 0; }
 .watch-row-rating-user { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: var(--watch-text-dim); }
 .watch-row-chevron { color: var(--watch-text-dim); font-size: 1.1rem; flex-shrink: 0; }
