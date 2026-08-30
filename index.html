@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>TryList</title>
+<meta name="theme-color" content="#0B0C10" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Abril+Fatface&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div id="login-gate" class="login-gate">
+  <div class="login-card">
+    <h1 class="login-title">TryList</h1>
+    <p class="login-sub">Who's this?</p>
+    <div class="login-buttons">
+      <button class="login-btn" data-user="Jade">Jade</button>
+      <button class="login-btn" data-user="John">John</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDING SCREEN -->
+<main id="landing" class="landing hidden">
+  <header class="landing-header">
+    <h1 class="landing-wordmark">TryList</h1>
+    <p class="landing-tagline">Watch it. Eat it. Do it.</p>
+  </header>
+  <nav class="landing-grid">
+    <button class="landing-card landing-card--watch" data-route="watch">
+      <span class="landing-card-eyebrow">01</span>
+      <span class="landing-card-title">Watch</span>
+      <span class="landing-card-desc">Movies &amp; shows on the list</span>
+    </button>
+    <button class="landing-card landing-card--food" data-route="food">
+      <span class="landing-card-eyebrow">02</span>
+      <span class="landing-card-title">Food</span>
+      <span class="landing-card-desc">Places to try &amp; revisit</span>
+    </button>
+    <button class="landing-card landing-card--activities" data-route="activities">
+      <span class="landing-card-eyebrow">03</span>
+      <span class="landing-card-title">Activities</span>
+      <span class="landing-card-desc">Things to go do</span>
+    </button>
+  </nav>
+  <p class="landing-user">Signed in as <span id="landing-user-name"></span> · <button id="switch-user-btn" class="link-btn">switch</button></p>
+</main>
+
+<!-- WATCH SECTION -->
+<section id="section-watch" class="app-section theme-watch hidden">
+  <header class="section-header">
+    <button class="home-btn" data-route="home" aria-label="Home">←</button>
+    <h2 class="section-title">Watch</h2>
+    <button class="add-btn" id="watch-add-btn" aria-label="Add">＋</button>
+  </header>
+
+  <div class="filter-bar" id="watch-filter-bar">
+    <select id="watch-filter-status" class="filter-select">
+      <option value="all">All</option>
+      <option value="to_watch" selected>To Watch</option>
+      <option value="watched">Watched</option>
+    </select>
+    <select id="watch-filter-format" class="filter-select">
+      <option value="all">Movie + Series</option>
+      <option value="movie">Movies</option>
+      <option value="series">Series</option>
+    </select>
+    <select id="watch-filter-tag" class="filter-select">
+      <option value="all">All tags</option>
+    </select>
+    <select id="watch-filter-addedby" class="filter-select">
+      <option value="all">Anyone</option>
+      <option value="Jade">Jade</option>
+      <option value="John">John</option>
+    </select>
+  </div>
+
+  <div id="watch-list" class="card-grid"></div>
+  <p id="watch-empty" class="empty-state hidden">Nothing here yet. Tap ＋ to add something.</p>
+</section>
+
+<!-- FOOD SECTION (Phase 2) -->
+<section id="section-food" class="app-section theme-food hidden">
+  <header class="section-header">
+    <button class="home-btn" data-route="home" aria-label="Home">←</button>
+    <h2 class="section-title">Food</h2>
+    <button class="add-btn" disabled aria-label="Add" title="Coming in phase 2">＋</button>
+  </header>
+  <div class="coming-soon">
+    <p class="stamp">PHASE 2</p>
+    <p>Food places, ratings &amp; the map are coming next.</p>
+  </div>
+</section>
+
+<!-- ACTIVITIES SECTION (Phase 2) -->
+<section id="section-activities" class="app-section theme-activities hidden">
+  <header class="section-header">
+    <button class="home-btn" data-route="home" aria-label="Home">←</button>
+    <h2 class="section-title">Activities</h2>
+    <button class="add-btn" disabled aria-label="Add" title="Coming in phase 2">＋</button>
+  </header>
+  <div class="coming-soon">
+    <p class="trail-marker">◆ TRAIL AHEAD</p>
+    <p>Activities &amp; the map are coming next.</p>
+  </div>
+</section>
+
+<!-- BOTTOM TAB BAR (visible inside sections) -->
+<nav id="tab-bar" class="tab-bar hidden">
+  <button class="tab-btn" data-route="watch" data-tab="watch">
+    <span class="tab-icon">🎬</span><span class="tab-label">Watch</span>
+  </button>
+  <button class="tab-btn" data-route="food" data-tab="food">
+    <span class="tab-icon">🍜</span><span class="tab-label">Food</span>
+  </button>
+  <button class="tab-btn" data-route="activities" data-tab="activities">
+    <span class="tab-icon">🥾</span><span class="tab-label">Activities</span>
+  </button>
+</nav>
+
+<!-- ADD/EDIT WATCH ITEM MODAL -->
+<div id="watch-modal" class="modal hidden">
+  <div class="modal-sheet theme-watch">
+    <header class="modal-header">
+      <h3 id="watch-modal-title">Add something to watch</h3>
+      <button class="modal-close" data-close-modal="watch-modal">✕</button>
+    </header>
+    <form id="watch-form">
+      <label class="field-label">Title</label>
+      <input type="text" id="watch-field-title" class="field-input" required />
+
+      <label class="field-label">Format</label>
+      <div class="segmented" id="watch-field-format">
+        <button type="button" class="segmented-btn active" data-value="movie">Movie</button>
+        <button type="button" class="segmented-btn" data-value="series">Series</button>
+      </div>
+
+      <label class="field-label">Tags</label>
+      <div class="tag-picker" id="watch-field-tags">
+        <!-- populated by JS -->
+      </div>
+
+      <input type="hidden" id="watch-field-id" />
+      <div class="modal-actions">
+        <button type="button" id="watch-delete-btn" class="btn-danger hidden">Delete</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- RATE / HISTORY MODAL -->
+<div id="rate-modal" class="modal hidden">
+  <div class="modal-sheet theme-watch">
+    <header class="modal-header">
+      <h3 id="rate-modal-title">Rate &amp; review</h3>
+      <button class="modal-close" data-close-modal="rate-modal">✕</button>
+    </header>
+
+    <div id="rate-history" class="rate-history"></div>
+
+    <form id="rate-form">
+      <label class="field-label">Your rating</label>
+      <div class="star-picker" id="star-picker"></div>
+
+      <label class="field-label">Watched at</label>
+      <div class="segmented" id="rate-field-location">
+        <button type="button" class="segmented-btn active" data-value="home">Home</button>
+        <button type="button" class="segmented-btn" data-value="cinema">Cinema</button>
+      </div>
+
+      <label class="field-label">Review (optional)</label>
+      <textarea id="rate-field-review" class="field-input field-textarea" rows="3"></textarea>
+
+      <input type="hidden" id="rate-field-itemid" />
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary">Save rating</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
