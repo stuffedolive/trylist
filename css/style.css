@@ -10,7 +10,7 @@
   --text-on-dark: #f2efe9;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
-  --font-landing: 'Space Grotesk', sans-serif;
+  --font-landing: 'Fredoka', sans-serif;
 
   /* Watch theme */
   --watch-bg: #0b0c10;
@@ -21,6 +21,7 @@
   --watch-text-dim: #9a9a9e;
   --watch-row-to-watch: #24262f;
   --watch-row-watched: #191a1f;
+  --watch-toggle-red: #a83a3a;
   --font-watch: 'Bebas Neue', sans-serif;
 
   /* Food theme */
@@ -131,7 +132,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- App sections (shared shell) ---------- */
 .app-section {
-  min-height: 100vh; padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  min-height: 100vh; padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
 .section-header {
   display: flex; align-items: center; gap: 12px;
@@ -160,20 +161,6 @@ button { font-family: inherit; cursor: pointer; }
 
 .empty-state { text-align: center; padding: 40px 20px; opacity: 0.6; font-size: 0.9rem; }
 .coming-soon { padding: 60px 24px; text-align: center; opacity: 0.75; }
-
-/* ---------- Bottom tab bar ---------- */
-.tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  display: flex; background: #101114; border-top: 1px solid #24252b;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.tab-btn {
-  flex: 1; background: none; border: none; padding: 10px 0 8px;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  color: #6f7078; font-size: 0.7rem;
-}
-.tab-btn.active { color: var(--text-on-dark); }
-.tab-icon { font-size: 1.25rem; }
 
 /* ---------- Modal ---------- */
 .modal {
@@ -251,6 +238,14 @@ button { font-family: inherit; cursor: pointer; }
 .theme-watch .modal-header.sticky-header { background: var(--watch-bg); border-bottom: 1px solid #24262d; }
 .theme-watch .modal-save-btn { color: var(--watch-accent); }
 .theme-watch .rating-hint { color: var(--watch-text-dim); }
+.theme-watch .cycle-btn {
+  background: var(--watch-toggle-red); color: #f5ece9; border: 1px solid var(--watch-toggle-red);
+}
+.theme-watch .btn-tertiary {
+  width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #3a3c44;
+  background: transparent; color: var(--watch-text-dim); font-size: 0.85rem; margin-top: 8px;
+}
+.user-rating-skipped { opacity: 0.6; font-style: italic; }
 .theme-watch .meta-line { color: var(--watch-text-dim); font-size: 0.82rem; margin: 14px 0 0; }
 .theme-watch .section-divider {
   margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid #2a2c33;

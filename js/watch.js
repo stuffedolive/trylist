@@ -146,12 +146,15 @@ function getFilters() {
 }
 
 function userRatings(item, user) {
-  return (item.ratings || []).filter(r => r.user === user);
+  return (item.ratings || []).filter(r => r.user === user && !r.skipped);
 }
 function userAverage(item, user) {
   const ratings = userRatings(item, user);
   if (ratings.length === 0) return null;
   return ratings.reduce((s, r) => s + r.stars, 0) / ratings.length;
+}
+function userSkipped(item, user) {
+  return (item.ratings || []).some(r => r.user === user && r.skipped);
 }
 
 function escapeHtml(str) {
@@ -175,7 +178,10 @@ function renderList() {
   container.innerHTML = '';
   empty.classList.toggle('hidden', list.length > 0);
 
-  list.forEach(item => container.appendChild(renderRow(item)));
+  list
+    .slice()
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
+    .forEach(item => container.appendChild(renderRow(item)));
 }
 
 function renderRow(item) {
@@ -188,7 +194,9 @@ function renderRow(item) {
   if (item.status === 'watched') {
     ratingsHtml = '<div class="watch-row-ratings">' + USERS.map(u => {
       const avg = userAverage(item, u);
-      return `<span class="watch-row-rating-user">${u} ${avg !== null ? starsHtml(avg, 'small') : '<span class="user-rating-empty">not yet</span>'}</span>`;
+      if (avg !== null) return `<span class="watch-row-rating-user">${u} ${starsHtml(avg, 'small')}</span>`;
+      if (userSkipped(item, u)) return `<span class="watch-row-rating-user user-rating-skipped">${u}: didn't watch</span>`;
+      return `<span class="watch-row-rating-user"><span class="user-rating-empty">${u}: not yet</span></span>`;
     }).join('') + '</div>';
   }
 
@@ -265,13 +273,20 @@ function renderRatingsSection(item) {
   const other = USERS.find(u => u !== me) || USERS[0];
 
   // Other person's rating(s) — read only
-  const otherRatings = userRatings(item, other);
-  const otherWrap = document.getElementById('watch-ratings-others');
   const otherAvg = userAverage(item, other);
+  const otherWrap = document.getElementById('watch-ratings-others');
+  let otherHtml;
+  if (otherAvg !== null) {
+    otherHtml = starsHtml(otherAvg, 'small') + ` <span>${otherAvg.toFixed(1)}</span>`;
+  } else if (userSkipped(item, other)) {
+    otherHtml = `<span class="user-rating-skipped">didn't watch this</span>`;
+  } else {
+    otherHtml = `<span class="user-rating-empty">no rating yet</span>`;
+  }
   otherWrap.innerHTML = `
     <div class="user-rating-line">
       <strong>${other}</strong>
-      ${otherAvg !== null ? starsHtml(otherAvg, 'small') + ` <span>${otherAvg.toFixed(1)}</span>` : '<span class="user-rating-empty">no rating yet</span>'}
+      ${otherHtml}
     </div>
   `;
 
@@ -359,10 +374,23 @@ document.getElementById('watch-add-rating-btn').addEventListener('click', async 
     watchedAt: new Date().toISOString()
   };
 
-  const updatedRatings = [...(item.ratings || []), newRating];
+  const withoutMineSkipped = (item.ratings || []).filter(r => !(r.user === getCurrentUser() && r.skipped));
+  const updatedRatings = [...withoutMineSkipped, newRating];
   await updateDoc(doc(db, 'watchItems', id), {
     ratings: updatedRatings,
     status: 'watched'
   });
   setStatusUI('watched');
+});
+
+document.getElementById('watch-skip-btn').addEventListener('click', async () => {
+  const id = document.getElementById('watch-field-id').value;
+  const item = allItems.find(i => i.id === id);
+  const me = getCurrentUser();
+
+  // Remove any prior skip/rating entries from this user first, then mark skipped
+  const withoutMine = (item.ratings || []).filter(r => r.user !== me);
+  const updatedRatings = [...withoutMine, { user: me, skipped: true, watchedAt: new Date().toISOString() }];
+
+  await updateDoc(doc(db, 'watchItems', id), { ratings: updatedRatings });
 });

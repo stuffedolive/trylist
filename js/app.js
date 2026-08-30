@@ -1,7 +1,7 @@
 import { getCurrentUser, setCurrentUser } from './user.js';
 import './watch.js';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
 
 // ---------------- Login gate ----------------
@@ -41,12 +41,6 @@ function render(route) {
   document.getElementById('section-watch').classList.toggle('hidden', route !== 'watch');
   document.getElementById('section-food').classList.toggle('hidden', route !== 'food');
   document.getElementById('section-activities').classList.toggle('hidden', route !== 'activities');
-
-  const tabBar = document.getElementById('tab-bar');
-  tabBar.classList.toggle('hidden', route === 'home');
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === route);
-  });
 
   window.scrollTo(0, 0);
   document.dispatchEvent(new CustomEvent('route-changed', { detail: { route } }));

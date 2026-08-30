@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Abril+Fatface&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Abril+Fatface&family=Space+Grotesk:wght@400;500;600;700&family=Fredoka:wght@500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -34,7 +34,6 @@
 <main id="landing" class="landing hidden">
   <header class="landing-header">
     <h1 class="landing-wordmark">TryList</h1>
-    <p class="landing-tagline">Watch it. Eat it. Do it.</p>
   </header>
   <nav class="landing-grid">
     <button class="landing-card landing-card--watch" data-route="watch">
@@ -102,19 +101,6 @@
   </div>
 </section>
 
-<!-- BOTTOM TAB BAR (visible inside sections) -->
-<nav id="tab-bar" class="tab-bar hidden">
-  <button class="tab-btn" data-route="watch" data-tab="watch">
-    <span class="tab-icon">🎬</span><span class="tab-label">Watch</span>
-  </button>
-  <button class="tab-btn" data-route="food" data-tab="food">
-    <span class="tab-icon">🍜</span><span class="tab-label">Food</span>
-  </button>
-  <button class="tab-btn" data-route="activities" data-tab="activities">
-    <span class="tab-icon">🥾</span><span class="tab-label">Activities</span>
-  </button>
-</nav>
-
 <!-- ADD / DETAIL MODAL -->
 <div id="watch-modal" class="modal hidden">
   <div class="modal-sheet theme-watch">
@@ -166,6 +152,7 @@
             <textarea id="rate-field-review" class="field-input field-textarea" rows="3"></textarea>
 
             <button type="button" id="watch-add-rating-btn" class="btn-secondary">Save rating</button>
+            <button type="button" id="watch-skip-btn" class="btn-tertiary">I didn't watch this</button>
           </div>
 
           <div id="watch-rate-history" class="rate-history"></div>
