@@ -9,13 +9,33 @@ const TAG_OPTIONS = [
   'Documentary', 'Drama', 'Comedy', 'Thriller', 'Sci-Fi',
   'Fantasy', 'Horror', 'Romance', 'Crime', 'Action', 'Animation', 'Reality'
 ];
+const USERS = ['Jade', 'John'];
 
 const colRef = collection(db, 'watchItems');
 let allItems = [];
-let selectedTags = [];       // for the add/edit form
+let selectedTags = [];
 let selectedFormat = 'movie';
+let selectedStatus = 'to_watch';   // for the add/edit form's status toggle
 let selectedRateLocation = 'home';
 let selectedStars = 0;
+let currentEditId = null;
+let statusFilter = 'to_watch';     // for the filter bar toggle
+
+// ---------------- Star rendering (real half-star support, no special glyph) ----------------
+function starsHtml(value, sizeClass = '') {
+  let html = `<span class="star-row ${sizeClass}">`;
+  for (let i = 1; i <= 5; i++) {
+    let fill = 0;
+    if (value >= i) fill = 100;
+    else if (value >= i - 0.5) fill = 50;
+    html += `<span class="star-slot" data-index="${i}">
+        <span class="star-empty">★</span>
+        <span class="star-fill" style="width:${fill}%">★</span>
+      </span>`;
+  }
+  html += '</span>';
+  return html;
+}
 
 // ---------------- Populate static UI ----------------
 function populateTagFilterOptions() {
@@ -58,6 +78,18 @@ document.querySelectorAll('#watch-field-format .segmented-btn').forEach(btn => {
   });
 });
 
+document.querySelectorAll('#watch-field-status .segmented-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    selectedStatus = btn.dataset.value;
+    document.querySelectorAll('#watch-field-status .segmented-btn').forEach(b =>
+      b.classList.toggle('active', b === btn)
+    );
+    if (currentEditId) {
+      await updateDoc(doc(db, 'watchItems', currentEditId), { status: selectedStatus });
+    }
+  });
+});
+
 document.querySelectorAll('#rate-field-location .segmented-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     selectedRateLocation = btn.dataset.value;
@@ -67,43 +99,60 @@ document.querySelectorAll('#rate-field-location .segmented-btn').forEach(btn => 
   });
 });
 
+// Filter bar status toggle (To Watch / Watched — no "all")
+document.querySelectorAll('#watch-status-toggle .segmented-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    statusFilter = btn.dataset.value;
+    document.querySelectorAll('#watch-status-toggle .segmented-btn').forEach(b =>
+      b.classList.toggle('active', b === btn)
+    );
+    renderList();
+  });
+});
+
 // ---------------- Live data ----------------
 onSnapshot(query(colRef, orderBy('createdAt', 'desc')), snap => {
   allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderList();
+  // Keep an open detail modal in sync with live updates
+  if (currentEditId) {
+    const fresh = allItems.find(i => i.id === currentEditId);
+    if (fresh) renderRatingsSection(fresh);
+  }
 });
 
-// ---------------- Filtering ----------------
-['watch-filter-status', 'watch-filter-format', 'watch-filter-tag', 'watch-filter-addedby']
+['watch-filter-format', 'watch-filter-tag', 'watch-filter-addedby']
   .forEach(id => document.getElementById(id).addEventListener('change', renderList));
 
 function getFilters() {
   return {
-    status: document.getElementById('watch-filter-status').value,
+    status: statusFilter,
     format: document.getElementById('watch-filter-format').value,
     tag: document.getElementById('watch-filter-tag').value,
     addedBy: document.getElementById('watch-filter-addedby').value
   };
 }
 
-function averageStars(item) {
-  const ratings = item.ratings || [];
+function userRatings(item, user) {
+  return (item.ratings || []).filter(r => r.user === user);
+}
+function userAverage(item, user) {
+  const ratings = userRatings(item, user);
   if (ratings.length === 0) return null;
-  const sum = ratings.reduce((s, r) => s + r.stars, 0);
-  return sum / ratings.length;
+  return ratings.reduce((s, r) => s + r.stars, 0) / ratings.length;
 }
 
-function starString(value) {
-  if (value === null) return '';
-  const full = Math.floor(value);
-  const half = value - full >= 0.5;
-  return '★'.repeat(full) + (half ? '½' : '');
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
+// ---------------- List rendering (list-row style) ----------------
 function renderList() {
   const f = getFilters();
   const list = allItems.filter(item => {
-    if (f.status !== 'all' && item.status !== f.status) return false;
+    if (item.status !== f.status) return false;
     if (f.format !== 'all' && item.format !== f.format) return false;
     if (f.tag !== 'all' && !(item.tags || []).includes(f.tag)) return false;
     if (f.addedBy !== 'all' && item.addedBy !== f.addedBy) return false;
@@ -115,86 +164,137 @@ function renderList() {
   container.innerHTML = '';
   empty.classList.toggle('hidden', list.length > 0);
 
-  list.forEach(item => container.appendChild(renderCard(item)));
+  list.forEach(item => container.appendChild(renderRow(item)));
 }
 
-function renderCard(item) {
-  const card = document.createElement('div');
-  card.className = 'watch-card' + (item.status === 'watched' ? ' is-watched' : '');
+function renderRow(item) {
+  const row = document.createElement('div');
+  row.className = 'watch-row' + (item.status === 'watched' ? ' is-watched' : '');
 
-  const avg = averageStars(item);
+  const genreLine = (item.tags || []).join(' · ') || item.format;
 
-  card.innerHTML = `
-    <div class="watch-card-top">
-      <div>
-        <p class="watch-card-title">${escapeHtml(item.title)}</p>
-        <span class="watch-card-format">${item.format}</span>
-      </div>
+  let ratingsHtml = '';
+  if (item.status === 'watched') {
+    ratingsHtml = '<div class="watch-row-ratings">' + USERS.map(u => {
+      const avg = userAverage(item, u);
+      return `<span class="watch-row-rating-user">${u} ${avg !== null ? starsHtml(avg, 'small') : '<span class="user-rating-empty">not yet</span>'}</span>`;
+    }).join('') + '</div>';
+  }
+
+  row.innerHTML = `
+    <div class="watch-row-main">
+      <p class="watch-row-title">${escapeHtml(item.title)}</p>
+      <p class="watch-row-sub">${escapeHtml(genreLine)}</p>
     </div>
-    <div class="watch-card-tags">
-      ${(item.tags || []).map(t => `<span class="watch-card-tag">${t}</span>`).join('')}
-    </div>
-    <div class="watch-card-footer">
-      <span class="watch-card-addedby">added by ${item.addedBy}</span>
-      <span class="watch-card-rating">${avg !== null ? starString(avg) + ' ' + avg.toFixed(1) : ''}</span>
-    </div>
-    <div class="watch-card-actions">
-      <button data-action="edit">Edit</button>
-      <button data-action="toggle">${item.status === 'watched' ? 'Mark to-watch' : 'Mark watched'}</button>
-      <button data-action="rate" class="primary">Rate / review</button>
-    </div>
+    ${ratingsHtml}
+    <span class="watch-row-chevron">›</span>
   `;
 
-  card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditModal(item));
-  card.querySelector('[data-action="toggle"]').addEventListener('click', () => toggleStatus(item));
-  card.querySelector('[data-action="rate"]').addEventListener('click', () => openRateModal(item));
-
-  return card;
+  row.addEventListener('click', () => openDetailModal(item));
+  return row;
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-async function toggleStatus(item) {
-  const newStatus = item.status === 'watched' ? 'to_watch' : 'watched';
-  await updateDoc(doc(db, 'watchItems', item.id), { status: newStatus });
-}
-
-// ---------------- Add / Edit modal ----------------
+// ---------------- Add / Detail modal ----------------
 const watchModal = document.getElementById('watch-modal');
 const watchForm = document.getElementById('watch-form');
 
 document.getElementById('watch-add-btn').addEventListener('click', () => openAddModal());
 
+function setFormatUI(value) {
+  selectedFormat = value;
+  document.querySelectorAll('#watch-field-format .segmented-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.value === value)
+  );
+}
+function setStatusUI(value) {
+  selectedStatus = value;
+  document.querySelectorAll('#watch-field-status .segmented-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.value === value)
+  );
+}
+
 function openAddModal() {
+  currentEditId = null;
   document.getElementById('watch-modal-title').textContent = 'Add something to watch';
   document.getElementById('watch-field-title').value = '';
   document.getElementById('watch-field-id').value = '';
   document.getElementById('watch-delete-btn').classList.add('hidden');
+  document.getElementById('watch-edit-only').classList.add('hidden');
   selectedTags = [];
-  selectedFormat = 'movie';
-  document.querySelectorAll('#watch-field-format .segmented-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.value === 'movie')
-  );
+  setFormatUI('movie');
   renderTagPicker();
   watchModal.classList.remove('hidden');
 }
 
-function openEditModal(item) {
-  document.getElementById('watch-modal-title').textContent = 'Edit';
+function openDetailModal(item) {
+  currentEditId = item.id;
+  document.getElementById('watch-modal-title').textContent = item.title;
   document.getElementById('watch-field-title').value = item.title;
   document.getElementById('watch-field-id').value = item.id;
   document.getElementById('watch-delete-btn').classList.remove('hidden');
+  document.getElementById('watch-edit-only').classList.remove('hidden');
   selectedTags = [...(item.tags || [])];
-  selectedFormat = item.format;
-  document.querySelectorAll('#watch-field-format .segmented-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.value === item.format)
-  );
+  setFormatUI(item.format);
+  setStatusUI(item.status);
   renderTagPicker();
+
+  document.getElementById('watch-meta-addedby').textContent = `Added by ${item.addedBy}`;
+
+  renderRatingsSection(item);
   watchModal.classList.remove('hidden');
+}
+
+function renderRatingsSection(item) {
+  const me = getCurrentUser();
+  const other = USERS.find(u => u !== me) || USERS[0];
+
+  // Other person's rating(s) — read only
+  const otherRatings = userRatings(item, other);
+  const otherWrap = document.getElementById('watch-ratings-others');
+  const otherAvg = userAverage(item, other);
+  otherWrap.innerHTML = `
+    <div class="user-rating-line">
+      <strong>${other}</strong>
+      ${otherAvg !== null ? starsHtml(otherAvg, 'small') + ` <span>${otherAvg.toFixed(1)}</span>` : '<span class="user-rating-empty">no rating yet</span>'}
+    </div>
+  `;
+
+  document.getElementById('watch-rate-own-label').textContent = `${me}'s rating`;
+  selectedStars = 0;
+  selectedRateLocation = 'home';
+  document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.value === 'home')
+  );
+  document.getElementById('rate-field-review').value = '';
+  renderStarPicker();
+
+  // Full chronological history, both users
+  const all = (item.ratings || []).slice().reverse();
+  const historyWrap = document.getElementById('watch-rate-history');
+  if (all.length === 0) {
+    historyWrap.innerHTML = '';
+  } else {
+    historyWrap.innerHTML = '<div class="section-divider">History</div>' + all.map(r => `
+      <div class="rate-history-entry">
+        <strong>${r.user}</strong> · ${starsHtml(r.stars, 'small')} (${r.stars}) · ${r.location}
+        ${r.review ? `<br/><span style="opacity:.8;">${escapeHtml(r.review)}</span>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+function renderStarPicker() {
+  const wrap = document.getElementById('star-picker');
+  wrap.innerHTML = starsHtml(selectedStars, 'picker');
+  wrap.querySelectorAll('.star-slot').forEach(slot => {
+    slot.addEventListener('click', e => {
+      const i = parseInt(slot.dataset.index, 10);
+      const rect = slot.getBoundingClientRect();
+      const clickedHalf = (e.clientX - rect.left) < rect.width / 2;
+      selectedStars = clickedHalf ? i - 0.5 : i;
+      renderStarPicker();
+    });
+  });
 }
 
 watchForm.addEventListener('submit', async e => {
@@ -229,61 +329,9 @@ document.getElementById('watch-delete-btn').addEventListener('click', async () =
   }
 });
 
-// ---------------- Rate / review modal ----------------
-const rateModal = document.getElementById('rate-modal');
-const rateForm = document.getElementById('rate-form');
-
-function renderStarPicker() {
-  const wrap = document.getElementById('star-picker');
-  wrap.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
-    star.dataset.value = i;
-    star.textContent = selectedStars >= i ? '★' : (selectedStars >= i - 0.5 ? '⯨' : '☆');
-    star.addEventListener('click', e => {
-      const rect = star.getBoundingClientRect();
-      const clickedHalf = (e.clientX - rect.left) < rect.width / 2;
-      selectedStars = clickedHalf ? i - 0.5 : i;
-      renderStarPicker();
-    });
-    wrap.appendChild(star);
-  }
-}
-
-function openRateModal(item) {
-  document.getElementById('rate-modal-title').textContent = `Rate & review — ${item.title}`;
-  document.getElementById('rate-field-itemid').value = item.id;
-  document.getElementById('rate-field-review').value = '';
-  selectedStars = 0;
-  selectedRateLocation = 'home';
-  document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.value === 'home')
-  );
-  renderStarPicker();
-
-  const historyWrap = document.getElementById('rate-history');
-  const ratings = item.ratings || [];
-  if (ratings.length === 0) {
-    historyWrap.innerHTML = '<p style="opacity:.6;font-size:.85rem;">No ratings yet.</p>';
-  } else {
-    historyWrap.innerHTML = ratings
-      .slice()
-      .reverse()
-      .map(r => `
-        <div class="rate-history-entry">
-          <strong>${r.user}</strong> · ${starString(r.stars)} (${r.stars}) · ${r.location}
-          ${r.review ? `<br/><span style="opacity:.8;">${escapeHtml(r.review)}</span>` : ''}
-        </div>
-      `).join('');
-  }
-
-  rateModal.classList.remove('hidden');
-}
-
-rateForm.addEventListener('submit', async e => {
-  e.preventDefault();
+document.getElementById('watch-add-rating-btn').addEventListener('click', async () => {
   if (selectedStars === 0) { alert('Pick a star rating first.'); return; }
-  const id = document.getElementById('rate-field-itemid').value;
+  const id = document.getElementById('watch-field-id').value;
   const item = allItems.find(i => i.id === id);
   const review = document.getElementById('rate-field-review').value.trim();
 
@@ -300,6 +348,5 @@ rateForm.addEventListener('submit', async e => {
     ratings: updatedRatings,
     status: 'watched'
   });
-
-  rateModal.classList.add('hidden');
+  setStatusUI('watched');
 });

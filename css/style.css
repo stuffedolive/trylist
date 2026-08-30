@@ -19,6 +19,8 @@
   --watch-accent: #d4a24e;
   --watch-text: #f2efe9;
   --watch-text-dim: #9a9a9e;
+  --watch-row-to-watch: #24262f;
+  --watch-row-watched: #191a1f;
   --font-watch: 'Bebas Neue', sans-serif;
 
   /* Food theme */
@@ -219,37 +221,61 @@ button { font-family: inherit; cursor: pointer; }
 .theme-watch .tag-chip { border-color: #33343b; color: var(--watch-text-dim); }
 .theme-watch .tag-chip.selected { background: var(--watch-accent); color: #17181d; border-color: var(--watch-accent); }
 .theme-watch .btn-primary { background: var(--watch-accent); color: #17181d; }
+.theme-watch .btn-secondary {
+  width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--watch-accent);
+  background: transparent; color: var(--watch-accent); font-weight: 700; margin-top: 14px;
+}
 .theme-watch .field-label { color: var(--watch-text-dim); }
 .theme-watch .modal-close { color: var(--watch-text-dim); }
+.theme-watch .meta-line { color: var(--watch-text-dim); font-size: 0.82rem; margin: 14px 0 0; }
+.theme-watch .section-divider {
+  margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid #2a2c33;
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--watch-text-dim);
+}
 
-/* Poster card with film-sprocket signature */
-.watch-card {
-  position: relative; background: var(--watch-surface); border-radius: 14px;
-  padding: 16px 16px 14px; border: 1px solid #24262d;
+/* Status toggle (filter bar) */
+.status-toggle { flex-shrink: 0; min-width: 190px; }
+.status-toggle .segmented-btn { border-color: #33343b; color: var(--watch-text-dim); padding: 7px 10px; font-size: 0.82rem; }
+.status-toggle .segmented-btn.active { background: var(--watch-accent); color: #17181d; border-color: var(--watch-accent); }
+
+/* Real half-star rendering via clipped overlay (works everywhere, no special glyph) */
+.star-row { display: inline-flex; gap: 2px; vertical-align: middle; }
+.star-slot { position: relative; display: inline-block; width: 1em; line-height: 1; }
+.star-slot .star-empty { color: #3a3c44; }
+.star-slot .star-fill {
+  position: absolute; top: 0; left: 0; overflow: hidden; white-space: nowrap; color: var(--watch-accent);
 }
-.watch-card.is-watched { opacity: 0.55; }
-.watch-card::before, .watch-card::after {
-  content: ""; position: absolute; left: 14px; right: 14px; height: 8px;
-  background-image: radial-gradient(circle, var(--watch-bg) 2.5px, transparent 2.6px);
-  background-size: 14px 8px; background-repeat: repeat-x;
-  opacity: 0.9;
+.star-row.picker .star-slot { font-size: 1.9rem; cursor: pointer; }
+.star-row.small .star-slot { font-size: 0.95rem; }
+.user-rating-line { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.85rem; color: var(--watch-text-dim); }
+.user-rating-line strong { color: var(--watch-text); min-width: 42px; }
+.user-rating-empty { opacity: 0.5; font-style: italic; }
+
+/* ---------- List-style row (replaces the old poster card) ---------- */
+.watch-row {
+  position: relative; border-radius: 10px; padding: 14px 14px 14px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-left: 4px solid var(--watch-accent);
+  background: var(--watch-row-to-watch);
 }
-.watch-card::before { top: 0; }
-.watch-card::after { bottom: 0; }
-.watch-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin: 6px 0 4px; }
-.watch-card-title { font-family: var(--font-watch); font-size: 1.3rem; letter-spacing: 0.01em; margin: 0; line-height: 1.1; }
-.watch-card-format { font-family: var(--font-mono); font-size: 0.65rem; color: var(--watch-text-dim); text-transform: uppercase; margin-top: 2px; display: block; }
-.watch-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.watch-card-tag { font-size: 0.68rem; padding: 3px 9px; border-radius: 10px; background: var(--watch-surface-2); color: var(--watch-text-dim); font-family: var(--font-mono); }
-.watch-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 0.78rem; color: var(--watch-text-dim); }
-.watch-card-addedby { font-family: var(--font-mono); }
-.watch-card-rating { color: var(--watch-accent); font-weight: 600; }
-.watch-card-actions { display: flex; gap: 8px; margin-top: 12px; }
-.watch-card-actions button {
-  flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #33343b; background: transparent;
-  color: var(--watch-text); font-size: 0.78rem; font-weight: 600;
+.watch-row.is-watched {
+  border-left-color: #4a4c55;
+  background: var(--watch-row-watched);
 }
-.watch-card-actions button.primary { background: var(--watch-accent); color: #17181d; border-color: var(--watch-accent); }
+.watch-row-main { min-width: 0; flex: 1; }
+.watch-row-title {
+  font-family: var(--font-watch); font-size: 1.25rem; letter-spacing: 0.01em;
+  margin: 0; line-height: 1.15; color: var(--watch-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.watch-row-sub {
+  margin-top: 3px; font-size: 0.75rem; color: var(--watch-text-dim);
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.watch-row-ratings { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex-shrink: 0; }
+.watch-row-rating-user { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: var(--watch-text-dim); }
+.watch-row-chevron { color: var(--watch-text-dim); font-size: 1.1rem; flex-shrink: 0; }
 
 /* =========================================================
    Theme: Food — diner ticket (kept minimal for phase 2 stub)
