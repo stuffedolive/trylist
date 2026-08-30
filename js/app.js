@@ -1,7 +1,7 @@
 import { getCurrentUser, setCurrentUser } from './user.js';
 import './watch.js';
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
 
 // ---------------- Login gate ----------------

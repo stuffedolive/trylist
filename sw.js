@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trylist-v7';
+const CACHE_NAME = 'trylist-v8';
 const APP_SHELL = [
   './',
   './index.html',

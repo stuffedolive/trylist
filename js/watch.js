@@ -118,6 +118,7 @@ document.getElementById('watch-vote-clear-btn').addEventListener('click', async 
     await updateDoc(doc(db, 'watchItems', currentEditId), { [`votes.${getCurrentUser()}`]: 0 });
   }
 });
+document.querySelectorAll('#rate-field-location .segmented-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     selectedRateLocation = btn.dataset.value;
     document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
