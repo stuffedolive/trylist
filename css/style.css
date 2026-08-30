@@ -238,6 +238,12 @@ button { font-family: inherit; cursor: pointer; }
 .theme-watch .modal-header.sticky-header { background: var(--watch-bg); border-bottom: 1px solid #24262d; }
 .theme-watch .modal-save-btn { color: var(--watch-accent); }
 .theme-watch .rating-hint { color: var(--watch-text-dim); }
+.theme-watch .vote-clear-btn { color: var(--watch-text-dim); font-size: 0.78rem; margin-top: 6px; }
+.list-group-header {
+  font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--watch-text-dim); margin: 14px 4px 6px; opacity: 0.75;
+}
+.list-group-header:first-child { margin-top: 0; }
 .theme-watch .cycle-btn {
   background: var(--watch-toggle-red); color: #f5ece9; border: 1px solid var(--watch-toggle-red);
 }

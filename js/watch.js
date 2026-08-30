@@ -100,7 +100,24 @@ document.querySelectorAll('#watch-field-status .segmented-btn').forEach(btn => {
   });
 });
 
-document.querySelectorAll('#rate-field-location .segmented-btn').forEach(btn => {
+document.querySelectorAll('#watch-field-vote .segmented-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const value = parseInt(btn.dataset.value, 10);
+    document.querySelectorAll('#watch-field-vote .segmented-btn').forEach(b =>
+      b.classList.toggle('active', b === btn)
+    );
+    if (currentEditId) {
+      await updateDoc(doc(db, 'watchItems', currentEditId), { [`votes.${getCurrentUser()}`]: value });
+    }
+  });
+});
+
+document.getElementById('watch-vote-clear-btn').addEventListener('click', async () => {
+  document.querySelectorAll('#watch-field-vote .segmented-btn').forEach(b => b.classList.remove('active'));
+  if (currentEditId) {
+    await updateDoc(doc(db, 'watchItems', currentEditId), { [`votes.${getCurrentUser()}`]: 0 });
+  }
+});
   btn.addEventListener('click', () => {
     selectedRateLocation = btn.dataset.value;
     document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
@@ -131,7 +148,10 @@ onSnapshot(query(colRef, orderBy('createdAt', 'desc')), snap => {
   // Keep an open detail modal in sync with live updates
   if (currentEditId) {
     const fresh = allItems.find(i => i.id === currentEditId);
-    if (fresh) renderRatingsSection(fresh);
+    if (fresh) {
+      renderVoteSection(fresh);
+      renderRatingsSection(fresh);
+    }
   }
 });
 
@@ -163,6 +183,21 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function voteScore(item) {
+  const votes = item.votes || {};
+  return (votes.Jade || 0) + (votes.John || 0);
+}
+
+function sortGroup(items, status) {
+  return items.slice().sort((a, b) => {
+    if (status === 'to_watch') {
+      const scoreDiff = voteScore(b) - voteScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+    }
+    return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+  });
+}
+
 // ---------------- List rendering (list-row style) ----------------
 function renderList() {
   const f = getFilters();
@@ -178,10 +213,28 @@ function renderList() {
   container.innerHTML = '';
   empty.classList.toggle('hidden', list.length > 0);
 
-  list
-    .slice()
-    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
-    .forEach(item => container.appendChild(renderRow(item)));
+  if (f.format === 'all') {
+    // Series first, then Movies — each internally sorted
+    const series = sortGroup(list.filter(i => i.format === 'series'), f.status);
+    const movies = sortGroup(list.filter(i => i.format === 'movie'), f.status);
+    if (series.length > 0) {
+      container.appendChild(groupHeader('Series'));
+      series.forEach(item => container.appendChild(renderRow(item)));
+    }
+    if (movies.length > 0) {
+      container.appendChild(groupHeader('Movies'));
+      movies.forEach(item => container.appendChild(renderRow(item)));
+    }
+  } else {
+    sortGroup(list, f.status).forEach(item => container.appendChild(renderRow(item)));
+  }
+}
+
+function groupHeader(label) {
+  const h = document.createElement('p');
+  h.className = 'list-group-header';
+  h.textContent = label;
+  return h;
 }
 
 function renderRow(item) {
@@ -259,8 +312,20 @@ function openDetailModal(item) {
 
   document.getElementById('watch-meta-addedby').textContent = `Added by ${item.addedBy}`;
 
+  renderVoteSection(item);
   renderRatingsSection(item);
   watchModal.classList.remove('hidden');
+}
+
+function renderVoteSection(item) {
+  const isWatched = item.status === 'watched';
+  document.getElementById('watch-vote-section').classList.toggle('hidden', isWatched);
+  if (isWatched) return;
+
+  const myVote = (item.votes || {})[getCurrentUser()] || 0;
+  document.querySelectorAll('#watch-field-vote .segmented-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.value, 10) === myVote)
+  );
 }
 
 function renderRatingsSection(item) {
@@ -346,7 +411,8 @@ watchForm.addEventListener('submit', async e => {
       status: 'to_watch',
       addedBy: getCurrentUser(),
       createdAt: serverTimestamp(),
-      ratings: []
+      ratings: [],
+      votes: {}
     });
   }
   watchModal.classList.add('hidden');
