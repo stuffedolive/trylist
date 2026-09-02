@@ -99,17 +99,6 @@ document.getElementById('food-field-visibility').addEventListener('change', e =>
   selectedVisibility = e.target.value;
 });
 
-document.querySelectorAll('#food-field-status .segmented-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    document.querySelectorAll('#food-field-status .segmented-btn').forEach(b =>
-      b.classList.toggle('active', b === btn)
-    );
-    if (currentEditId) {
-      await updateDoc(doc(db, 'foodItems', currentEditId), { status: btn.dataset.value });
-    }
-  });
-});
-
 // ---------------- Filter bar (tap-to-cycle) ----------------
 const statusCycleBtn = document.getElementById('food-status-cycle');
 statusCycleBtn.addEventListener('click', () => {
@@ -225,11 +214,6 @@ function setCostUI(value) {
     b.classList.toggle('active', value !== null && b.dataset.value === value)
   );
 }
-function setFoodStatusUI(value) {
-  document.querySelectorAll('#food-field-status .segmented-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.value === value)
-  );
-}
 
 function openAddModal() {
   currentEditId = null;
@@ -259,7 +243,6 @@ function openDetailModal(item) {
   selectedVisibility = item.visibility || 'shared';
   document.getElementById('food-field-visibility').value = selectedVisibility;
   setCostUI(item.cost || null);
-  setFoodStatusUI(item.status);
   renderLocationFields();
 
   document.getElementById('food-meta-addedby').textContent = `Added by ${item.addedBy}`;
@@ -269,13 +252,10 @@ function openDetailModal(item) {
 }
 
 function renderRatingsSection(item) {
-  const isVisited = item.status === 'visited';
-  document.getElementById('food-rating-hint').classList.toggle('hidden', isVisited);
-  document.getElementById('food-ratings-block').classList.toggle('hidden', !isVisited);
-  if (!isVisited) return;
-
   const me = getCurrentUser();
   const other = USERS.find(u => u !== me) || USERS[0];
+  const hasAnyRealVisit = (item.visits || []).some(v => !v.skipped);
+  document.getElementById('food-skip-btn').classList.toggle('hidden', !hasAnyRealVisit);
 
   const otherAvg = userOverallAverage(item, other);
   const otherWrap = document.getElementById('food-ratings-others');
@@ -291,7 +271,7 @@ function renderRatingsSection(item) {
 
   editingVisitIndex = null;
   document.getElementById('food-rate-own-label').textContent = `${me}'s visit`;
-  document.getElementById('food-add-visit-btn').textContent = 'Save visit';
+  document.getElementById('food-add-visit-btn').textContent = 'Add visit';
   SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
   document.getElementById('food-field-review').value = '';
 
@@ -347,11 +327,15 @@ async function deleteVisitEntry(item, idx) {
   if (!confirm('Delete this visit?')) return;
   const id = document.getElementById('food-field-id').value;
   const updatedVisits = item.visits.filter((_, i) => i !== idx);
-  await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits });
+  const stillHasRealVisit = updatedVisits.some(v => !v.skipped);
+  await updateDoc(doc(db, 'foodItems', id), {
+    visits: updatedVisits,
+    status: stillHasRealVisit ? 'visited' : 'to_try'
+  });
   if (editingVisitIndex === idx) {
     editingVisitIndex = null;
     SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
-    document.getElementById('food-add-visit-btn').textContent = 'Save visit';
+    document.getElementById('food-add-visit-btn').textContent = 'Add visit';
   }
 }
 
@@ -423,8 +407,7 @@ document.getElementById('food-add-visit-btn').addEventListener('click', async ()
   }
 
   await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits, status: 'visited' });
-  setFoodStatusUI('visited');
-  document.getElementById('food-add-visit-btn').textContent = 'Save visit';
+  document.getElementById('food-add-visit-btn').textContent = 'Add visit';
   document.getElementById('food-rate-own-label').textContent = `${getCurrentUser()}'s visit`;
 });
 

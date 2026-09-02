@@ -227,19 +227,12 @@
       <div id="food-edit-only" class="hidden">
         <p class="meta-line" id="food-meta-addedby"></p>
 
-        <label class="field-label">Status</label>
-        <div class="segmented" id="food-field-status">
-          <button type="button" class="segmented-btn active" data-value="to_try">To Try</button>
-          <button type="button" class="segmented-btn" data-value="visited">Visited</button>
-        </div>
-
-        <div class="section-divider">Ratings</div>
-        <p id="food-rating-hint" class="rating-hint hidden">Mark as visited to add a rating.</p>
+        <div class="section-divider">Visits</div>
         <div id="food-ratings-block">
           <div id="food-ratings-others"></div>
 
           <div id="food-rate-own">
-            <label class="field-label" id="food-rate-own-label">Your visit</label>
+            <label class="field-label" id="food-rate-own-label">Add a visit</label>
 
             <div class="score-grid">
               <label class="score-row">Taste <input type="number" min="0" max="10" step="1" id="food-score-taste" class="field-input score-input" /></label>
@@ -252,8 +245,8 @@
             <label class="field-label">Review (optional)</label>
             <textarea id="food-field-review" class="field-input field-textarea" rows="3"></textarea>
 
-            <button type="button" id="food-add-visit-btn" class="btn-secondary">Save visit</button>
-            <button type="button" id="food-skip-btn" class="btn-tertiary">I wasn't there</button>
+            <button type="button" id="food-add-visit-btn" class="btn-secondary">Add visit</button>
+            <button type="button" id="food-skip-btn" class="btn-tertiary hidden">I wasn't there</button>
           </div>
 
           <div id="food-rate-history" class="rate-history"></div>
