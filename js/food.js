@@ -8,13 +8,14 @@ import {
 const CATEGORY_LABELS = {
   restaurant: 'Restaurant',
   takeaway: 'Takeaway',
-  cafe_breakfast: 'Café (breakfast)',
-  cafe_lunch: 'Café (lunch)'
+  cafe_normal: 'Cafe',
+  cafe_coffee: 'Cafe (coffee/pastry)'
 };
 const USERS = ['Jade', 'John'];
 const SCORE_FIELDS = ['taste', 'value', 'atmosphere', 'service', 'wouldreturn'];
 
 const STATUS_FILTER_STATES = [
+  { value: 'all', label: 'All' },
   { value: 'to_try', label: 'To Try' },
   { value: 'visited', label: 'Visited' }
 ];
@@ -22,19 +23,18 @@ const CATEGORY_FILTER_STATES = [
   { value: 'all', label: 'All categories' },
   { value: 'restaurant', label: 'Restaurant' },
   { value: 'takeaway', label: 'Takeaway' },
-  { value: 'cafe_breakfast', label: 'Café (breakfast)' },
-  { value: 'cafe_lunch', label: 'Café (lunch)' }
+  { value: 'cafe_normal', label: 'Cafe' },
+  { value: 'cafe_coffee', label: 'Cafe (coffee/pastry)' }
 ];
 const COST_FILTER_STATES = [
   { value: 'all', label: 'Any cost' },
   { value: '$', label: '$' },
-  { value: '$$', label: '$$' },
   { value: '$$$', label: '$$$' }
 ];
 
 const colRef = collection(db, 'foodItems');
 let allItems = [];
-let selectedCost = '$';
+let selectedCost = null;
 let selectedVisibility = 'shared';
 let selectedLocations = [''];
 let currentEditId = null;
@@ -80,10 +80,12 @@ document.getElementById('food-add-location-btn').addEventListener('click', () =>
 // ---------------- Cost / status segmented ----------------
 document.querySelectorAll('#food-field-cost .segmented-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    selectedCost = btn.dataset.value;
-    document.querySelectorAll('#food-field-cost .segmented-btn').forEach(b =>
-      b.classList.toggle('active', b === btn)
-    );
+    if (selectedCost === btn.dataset.value) {
+      selectedCost = null;
+    } else {
+      selectedCost = btn.dataset.value;
+    }
+    setCostUI(selectedCost);
   });
 });
 
@@ -157,7 +159,7 @@ function userSkippedFood(item, user) {
 function renderList() {
   const f = getFilters();
   const list = allItems.filter(item => {
-    if (item.status !== f.status) return false;
+    if (f.status !== 'all' && item.status !== f.status) return false;
     if (item.visibility === 'private' && item.addedBy !== getCurrentUser()) return false;
     if (f.category !== 'all' && item.category !== f.category) return false;
     if (f.cost !== 'all' && item.cost !== f.cost) return false;
@@ -179,7 +181,8 @@ function renderRow(item) {
   const row = document.createElement('div');
   row.className = 'food-row' + (item.status === 'visited' ? ' is-visited' : '');
 
-  const subLine = `${CATEGORY_LABELS[item.category] || item.category} · ${item.cost}`;
+  const subLine = CATEGORY_LABELS[item.category] || item.category;
+  const subLineFull = item.cost ? `${subLine} · ${item.cost}` : subLine;
 
   let scoresHtml = '';
   if (item.status === 'visited') {
@@ -194,7 +197,7 @@ function renderRow(item) {
   row.innerHTML = `
     <div class="food-row-main">
       <p class="food-row-title">${escapeHtml(item.name)}</p>
-      <p class="food-row-sub">${escapeHtml(subLine)}</p>
+      <p class="food-row-sub">${escapeHtml(subLineFull)}</p>
     </div>
     ${scoresHtml}
     <span class="food-row-chevron">›</span>
@@ -213,7 +216,7 @@ document.getElementById('food-add-btn').addEventListener('click', () => openAddM
 function setCostUI(value) {
   selectedCost = value;
   document.querySelectorAll('#food-field-cost .segmented-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.value === value)
+    b.classList.toggle('active', value !== null && b.dataset.value === value)
   );
 }
 function setFoodStatusUI(value) {
@@ -233,7 +236,7 @@ function openAddModal() {
   selectedLocations = [''];
   selectedVisibility = 'shared';
   document.getElementById('food-field-visibility').value = 'shared';
-  setCostUI('$');
+  setCostUI(null);
   renderLocationFields();
   foodModal.classList.remove('hidden');
 }
@@ -249,7 +252,7 @@ function openDetailModal(item) {
   selectedLocations = item.locations && item.locations.length > 0 ? [...item.locations] : [''];
   selectedVisibility = item.visibility || 'shared';
   document.getElementById('food-field-visibility').value = selectedVisibility;
-  setCostUI(item.cost);
+  setCostUI(item.cost || null);
   setFoodStatusUI(item.status);
   renderLocationFields();
 

@@ -84,7 +84,7 @@
   </header>
 
   <div class="filter-bar" id="food-filter-bar">
-    <button type="button" class="cycle-btn" id="food-status-cycle">To Try</button>
+    <button type="button" class="cycle-btn" id="food-status-cycle">All</button>
     <button type="button" class="cycle-btn" id="food-category-cycle">All categories</button>
     <button type="button" class="cycle-btn" id="food-cost-cycle">Any cost</button>
   </div>
@@ -204,14 +204,13 @@
       <select id="food-field-category" class="field-input">
         <option value="restaurant">Restaurant</option>
         <option value="takeaway">Takeaway</option>
-        <option value="cafe_breakfast">Café (breakfast)</option>
-        <option value="cafe_lunch">Café (lunch)</option>
+        <option value="cafe_normal">Cafe</option>
+        <option value="cafe_coffee">Cafe (coffee/pastry)</option>
       </select>
 
-      <label class="field-label">Cost</label>
+      <label class="field-label">Cost <span class="field-optional">(if you know it)</span></label>
       <div class="segmented" id="food-field-cost">
-        <button type="button" class="segmented-btn active" data-value="$">$</button>
-        <button type="button" class="segmented-btn" data-value="$$">$$</button>
+        <button type="button" class="segmented-btn" data-value="$">$</button>
         <button type="button" class="segmented-btn" data-value="$$$">$$$</button>
       </div>
 
