@@ -30,6 +30,8 @@
   --food-accent: #b23a2e;
   --food-text: #2b211a;
   --food-text-dim: #8a7b6c;
+  --food-row-to-try: #fffaf3;
+  --food-row-visited: #f2e6d5;
   --font-food: 'Abril Fatface', serif;
 
   /* Activities theme */
@@ -309,12 +311,65 @@ button { font-family: inherit; cursor: pointer; }
 .theme-food { background: var(--food-bg); color: var(--food-text); }
 .theme-food .section-header { background: rgba(247,236,221,0.9); }
 .theme-food .section-title { font-family: var(--font-food); font-weight: 400; color: var(--food-accent); }
-.theme-food .home-btn { color: var(--food-text); }
-.stamp {
-  display: inline-block; border: 3px solid var(--food-accent); color: var(--food-accent);
-  padding: 6px 16px; transform: rotate(-4deg); font-weight: 700; letter-spacing: 0.08em;
-  font-family: var(--font-mono); margin-bottom: 14px;
+.theme-food .home-btn, .theme-food .add-btn { color: var(--food-text); }
+.theme-food .filter-select, .theme-food .field-input, .theme-food textarea {
+  background: var(--food-surface); color: var(--food-text); border-color: #e6d3ba;
 }
+.theme-food .cycle-btn { background: var(--food-accent); color: #fff5ec; border: 1px solid var(--food-accent); }
+.theme-food .segmented-btn { border-color: #e6d3ba; color: var(--food-text-dim); }
+.theme-food .segmented-btn.active { background: var(--food-accent); color: #fff5ec; border-color: var(--food-accent); }
+.theme-food .btn-secondary {
+  width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--food-accent);
+  background: transparent; color: var(--food-accent); font-weight: 700; margin-top: 14px;
+}
+.theme-food .btn-tertiary {
+  width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #e6d3ba;
+  background: transparent; color: var(--food-text-dim); font-size: 0.85rem; margin-top: 8px;
+}
+.theme-food .field-label { color: var(--food-text-dim); }
+.theme-food .modal-close { color: var(--food-text-dim); }
+.theme-food .modal-header.sticky-header { background: var(--food-bg); border-bottom: 1px solid #e6d3ba; }
+.theme-food .modal-save-btn { color: var(--food-accent); }
+.theme-food .rating-hint { color: var(--food-text-dim); }
+.theme-food .meta-line { color: var(--food-text-dim); font-size: 0.82rem; margin: 14px 0 0; }
+.theme-food .section-divider {
+  margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid #e6d3ba;
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--food-text-dim);
+}
+.theme-food .link-btn { color: var(--food-accent); }
+
+.food-row {
+  position: relative; border-radius: 10px; padding: 10px 12px 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-left: 4px solid var(--food-accent);
+  background: var(--food-row-to-try);
+}
+.food-row.is-visited { border-left-color: #c9a876; background: var(--food-row-visited); }
+.food-row-main { min-width: 0; flex: 1; }
+.food-row-title {
+  font-family: var(--font-food); font-weight: 400; font-size: 1.15rem;
+  margin: 0; line-height: 1.2; color: var(--food-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.food-row-sub {
+  margin-top: 1px; font-size: 0.62rem; color: var(--food-text-dim);
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.food-row-scores { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex-shrink: 0; }
+.food-score-badge { font-family: var(--font-mono); font-size: 0.72rem; color: var(--food-text-dim); }
+.food-score-badge strong { color: var(--food-accent); font-size: 0.85rem; }
+.food-row-chevron { color: var(--food-text-dim); font-size: 1.1rem; flex-shrink: 0; }
+
+.score-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.score-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; color: var(--food-text); gap: 10px; }
+.score-input { width: 64px; text-align: center; padding: 8px; }
+.location-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+.location-row .field-input { flex: 1; }
+.location-remove-btn { border: none; background: transparent; font-size: 1.1rem; color: var(--food-text-dim); padding: 4px 6px; }
+.add-location-btn { font-size: 0.82rem; margin: -2px 0 4px; display: inline-block; }
+.other-score-line { font-size: 0.85rem; color: var(--food-text-dim); margin-bottom: 10px; }
+.other-score-line strong { color: var(--food-text); }
 
 /* =========================================================
    Theme: Activities — trail map (kept minimal for phase 2 stub)
