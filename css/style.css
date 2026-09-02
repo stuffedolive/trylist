@@ -349,6 +349,7 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--food-text-dim);
 }
 .theme-food .link-btn { color: var(--food-accent); }
+.theme-food .view-heading { color: var(--food-accent); }
 
 .food-row {
   position: relative; border-radius: 10px; padding: 10px 12px 10px 16px;
@@ -373,15 +374,27 @@ button { font-family: inherit; cursor: pointer; }
 .food-score-badge strong { color: var(--food-accent); font-size: 0.85rem; }
 .food-row-chevron { color: var(--food-text-dim); font-size: 1.1rem; flex-shrink: 0; }
 
-.score-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
-.score-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; color: var(--food-text); gap: 10px; }
+.score-grid { display: grid; grid-template-columns: 1fr auto; row-gap: 10px; column-gap: 12px; align-items: center; margin-top: 6px; }
+.score-row { display: contents; }
+.score-label { font-size: 0.88rem; color: var(--food-text); }
 .score-input { width: 64px; text-align: center; padding: 8px; }
+.date-input { max-width: 200px; }
+input[type="date"].field-input { font-size: 0.95rem; padding: 9px 12px; line-height: 1.3; }
 .location-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
 .location-row .field-input { flex: 1; }
 .location-remove-btn { border: none; background: transparent; font-size: 1.1rem; color: var(--food-text-dim); padding: 4px 6px; }
 .add-location-btn { font-size: 0.82rem; margin: -2px 0 4px; display: inline-block; }
 .other-score-line { font-size: 0.85rem; color: var(--food-text-dim); margin-bottom: 10px; }
 .other-score-line strong { color: var(--food-text); }
+.view-heading {
+  font-size: 1.05rem; font-weight: 700; margin: 22px 0 12px; padding-top: 14px;
+  border-top: 1px solid rgba(128,128,128,0.25);
+}
+.view-subtitle {
+  font-size: 0.88rem; margin: 2px 0; white-space: normal; overflow-wrap: break-word;
+  overflow: visible; text-overflow: clip;
+}
+.view-subtitle-location { opacity: 0.85; }
 
 /* =========================================================
    Theme: Activities — trail map (kept minimal for phase 2 stub)

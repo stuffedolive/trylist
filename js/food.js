@@ -230,10 +230,15 @@ function openViewModal(item) {
 function renderViewContent(item) {
   document.getElementById('food-view-title').textContent = item.name;
 
-  const locLine = (item.locations || []).join(' · ');
   const subParts = [CATEGORY_LABELS[item.category] || item.category];
   if (item.cost) subParts.push(item.cost);
-  document.getElementById('food-view-sub').textContent = subParts.join(' · ') + (locLine ? ` — ${locLine}` : '');
+  document.getElementById('food-view-sub').textContent = subParts.join(' · ');
+
+  const locLine = (item.locations || []).join(' · ');
+  const locEl = document.getElementById('food-view-location');
+  locEl.textContent = locLine ? `📍 ${locLine}` : '';
+  locEl.classList.toggle('hidden', !locLine);
+
   document.getElementById('food-view-addedby').textContent = `Added by ${item.addedBy}`;
 
   const me = getCurrentUser();
@@ -245,13 +250,13 @@ function renderViewContent(item) {
   const otherWrap = document.getElementById('food-view-others');
   let otherHtml;
   if (otherAvg !== null) {
-    otherHtml = `<strong>${otherAvg.toFixed(1)}</strong> / 10`;
+    otherHtml = `<strong>${other}'s average:</strong> ${otherAvg.toFixed(1)} / 10`;
   } else if (userSkippedFood(item, other)) {
-    otherHtml = `<span class="user-rating-skipped">wasn't there</span>`;
+    otherHtml = `<strong>${other}:</strong> wasn't there`;
   } else {
-    otherHtml = `<span class="user-rating-empty">no rating yet</span>`;
+    otherHtml = `<strong>${other}:</strong> <span class="user-rating-empty">hasn't rated yet</span>`;
   }
-  otherWrap.innerHTML = `<p class="other-score-line"><strong>${other}</strong>: ${otherHtml}</p>`;
+  otherWrap.innerHTML = `<p class="other-score-line">${otherHtml}</p>`;
 
   const all = (item.visits || []).map((v, i) => ({ ...v, _idx: i })).reverse();
   const historyWrap = document.getElementById('food-view-history');
@@ -297,7 +302,7 @@ document.getElementById('food-view-edit-btn').addEventListener('click', () => {
   openEditModal(item);
 });
 
-document.getElementById('food-add-details-btn').addEventListener('click', () => {
+document.getElementById('food-add-visit-btn').addEventListener('click', () => {
   const item = allItems.find(i => i.id === currentViewId);
   foodViewModal.classList.add('hidden');
   openVisitModal(item, null);
@@ -393,7 +398,7 @@ function openVisitModal(item, editIdx) {
     });
     document.getElementById('food-visit-review').value = entry.review || '';
   } else {
-    document.getElementById('food-visit-modal-title').textContent = 'Add details';
+    document.getElementById('food-visit-modal-title').textContent = 'Add visit';
     document.getElementById('food-visit-date').value = todayDateInputValue();
     SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
     document.getElementById('food-visit-review').value = '';
