@@ -2,7 +2,7 @@ import { getCurrentUser, setCurrentUser } from './user.js';
 import './watch.js';
 import './food.js';
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
 
 // ---------------- Login gate ----------------

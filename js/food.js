@@ -34,16 +34,18 @@ const COST_FILTER_STATES = [
 
 const colRef = collection(db, 'foodItems');
 let allItems = [];
+
+// Edit-details modal state
 let selectedCost = null;
 let selectedVisibility = 'shared';
 let selectedLocations = [''];
 let currentEditId = null;
-let editingVisitIndex = null;
 
-function formatHistoryDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
+// View modal state
+let currentViewId = null;
+
+// Visit modal state
+let currentVisitEditIdx = null;
 
 let statusFilterIndex = 0;
 let categoryFilterIndex = 0;
@@ -55,7 +57,18 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ---------------- Locations repeatable field ----------------
+function formatHistoryDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function todayDateInputValue() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+// ---------------- Locations repeatable field (edit-details modal) ----------------
 function renderLocationFields() {
   const wrap = document.getElementById('food-field-locations');
   wrap.innerHTML = '';
@@ -83,17 +96,18 @@ document.getElementById('food-add-location-btn').addEventListener('click', () =>
   renderLocationFields();
 });
 
-// ---------------- Cost / status segmented ----------------
 document.querySelectorAll('#food-field-cost .segmented-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (selectedCost === btn.dataset.value) {
-      selectedCost = null;
-    } else {
-      selectedCost = btn.dataset.value;
-    }
+    selectedCost = (selectedCost === btn.dataset.value) ? null : btn.dataset.value;
     setCostUI(selectedCost);
   });
 });
+function setCostUI(value) {
+  selectedCost = value;
+  document.querySelectorAll('#food-field-cost .segmented-btn').forEach(b =>
+    b.classList.toggle('active', value !== null && b.dataset.value === value)
+  );
+}
 
 document.getElementById('food-field-visibility').addEventListener('change', e => {
   selectedVisibility = e.target.value;
@@ -131,9 +145,9 @@ function getFilters() {
 onSnapshot(query(colRef, orderBy('createdAt', 'desc')), snap => {
   allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderList();
-  if (currentEditId) {
-    const fresh = allItems.find(i => i.id === currentEditId);
-    if (fresh) renderRatingsSection(fresh);
+  if (currentViewId) {
+    const fresh = allItems.find(i => i.id === currentViewId);
+    if (fresh) renderViewContent(fresh);
   }
 });
 
@@ -198,67 +212,37 @@ function renderRow(item) {
     <span class="food-row-chevron">›</span>
   `;
 
-  row.addEventListener('click', () => openDetailModal(item));
+  row.addEventListener('click', () => openViewModal(item));
   return row;
 }
 
-// ---------------- Add / Detail modal ----------------
-const foodModal = document.getElementById('food-modal');
-const foodForm = document.getElementById('food-form');
+// =================================================================
+// VIEW MODAL — name/category/cost/location small, visits are the focus
+// =================================================================
+const foodViewModal = document.getElementById('food-view-modal');
 
-document.getElementById('food-add-btn').addEventListener('click', () => openAddModal());
-
-function setCostUI(value) {
-  selectedCost = value;
-  document.querySelectorAll('#food-field-cost .segmented-btn').forEach(b =>
-    b.classList.toggle('active', value !== null && b.dataset.value === value)
-  );
+function openViewModal(item) {
+  currentViewId = item.id;
+  renderViewContent(item);
+  foodViewModal.classList.remove('hidden');
 }
 
-function openAddModal() {
-  currentEditId = null;
-  document.getElementById('food-modal-title').textContent = 'Add somewhere to try';
-  document.getElementById('food-field-name').value = '';
-  document.getElementById('food-field-id').value = '';
-  document.getElementById('food-field-category').value = 'restaurant';
-  document.getElementById('food-delete-btn').classList.add('hidden');
-  document.getElementById('food-edit-only').classList.add('hidden');
-  selectedLocations = [''];
-  selectedVisibility = 'shared';
-  document.getElementById('food-field-visibility').value = 'shared';
-  setCostUI(null);
-  renderLocationFields();
-  foodModal.classList.remove('hidden');
-}
+function renderViewContent(item) {
+  document.getElementById('food-view-title').textContent = item.name;
 
-function openDetailModal(item) {
-  currentEditId = item.id;
-  document.getElementById('food-modal-title').textContent = item.name;
-  document.getElementById('food-field-name').value = item.name;
-  document.getElementById('food-field-id').value = item.id;
-  document.getElementById('food-field-category').value = item.category;
-  document.getElementById('food-delete-btn').classList.remove('hidden');
-  document.getElementById('food-edit-only').classList.remove('hidden');
-  selectedLocations = item.locations && item.locations.length > 0 ? [...item.locations] : [''];
-  selectedVisibility = item.visibility || 'shared';
-  document.getElementById('food-field-visibility').value = selectedVisibility;
-  setCostUI(item.cost || null);
-  renderLocationFields();
+  const locLine = (item.locations || []).join(' · ');
+  const subParts = [CATEGORY_LABELS[item.category] || item.category];
+  if (item.cost) subParts.push(item.cost);
+  document.getElementById('food-view-sub').textContent = subParts.join(' · ') + (locLine ? ` — ${locLine}` : '');
+  document.getElementById('food-view-addedby').textContent = `Added by ${item.addedBy}`;
 
-  document.getElementById('food-meta-addedby').textContent = `Added by ${item.addedBy}`;
-
-  renderRatingsSection(item);
-  foodModal.classList.remove('hidden');
-}
-
-function renderRatingsSection(item) {
   const me = getCurrentUser();
   const other = USERS.find(u => u !== me) || USERS[0];
   const hasAnyRealVisit = (item.visits || []).some(v => !v.skipped);
-  document.getElementById('food-skip-btn').classList.toggle('hidden', !hasAnyRealVisit);
+  document.getElementById('food-view-skip-btn').classList.toggle('hidden', !hasAnyRealVisit);
 
   const otherAvg = userOverallAverage(item, other);
-  const otherWrap = document.getElementById('food-ratings-others');
+  const otherWrap = document.getElementById('food-view-others');
   let otherHtml;
   if (otherAvg !== null) {
     otherHtml = `<strong>${otherAvg.toFixed(1)}</strong> / 10`;
@@ -269,18 +253,12 @@ function renderRatingsSection(item) {
   }
   otherWrap.innerHTML = `<p class="other-score-line"><strong>${other}</strong>: ${otherHtml}</p>`;
 
-  editingVisitIndex = null;
-  document.getElementById('food-rate-own-label').textContent = `${me}'s visit`;
-  document.getElementById('food-add-visit-btn').textContent = 'Add visit';
-  SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
-  document.getElementById('food-field-review').value = '';
-
   const all = (item.visits || []).map((v, i) => ({ ...v, _idx: i })).reverse();
-  const historyWrap = document.getElementById('food-rate-history');
+  const historyWrap = document.getElementById('food-view-history');
   if (all.length === 0) {
-    historyWrap.innerHTML = '';
+    historyWrap.innerHTML = '<p class="empty-state">No visits logged yet.</p>';
   } else {
-    historyWrap.innerHTML = '<div class="section-divider">History</div>' + all.map(v => {
+    historyWrap.innerHTML = all.map(v => {
       const isMine = v.user === me;
       const dateLabel = formatHistoryDate(v.visitedAt);
       const actions = isMine ? `<span class="rate-history-actions">
@@ -302,7 +280,10 @@ function renderRatingsSection(item) {
     }).join('');
 
     historyWrap.querySelectorAll('.history-edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => startEditVisit(item, parseInt(btn.dataset.idx, 10)));
+      btn.addEventListener('click', () => {
+        foodViewModal.classList.add('hidden');
+        openVisitModal(item, parseInt(btn.dataset.idx, 10));
+      });
     });
     historyWrap.querySelectorAll('.history-delete-btn').forEach(btn => {
       btn.addEventListener('click', () => deleteVisitEntry(item, parseInt(btn.dataset.idx, 10)));
@@ -310,36 +291,50 @@ function renderRatingsSection(item) {
   }
 }
 
-function startEditVisit(item, idx) {
-  const entry = item.visits[idx];
-  if (!entry || entry.skipped) return;
-  editingVisitIndex = idx;
-  SCORE_FIELDS.forEach(f => {
-    document.getElementById(`food-score-${f}`).value = entry.scores && entry.scores[f] !== undefined ? entry.scores[f] : '';
-  });
-  document.getElementById('food-field-review').value = entry.review || '';
-  document.getElementById('food-rate-own-label').textContent = `Editing ${entry.user}'s visit from ${formatHistoryDate(entry.visitedAt)}`;
-  document.getElementById('food-add-visit-btn').textContent = 'Update visit';
-  document.getElementById('food-rate-own').scrollIntoView?.({ block: 'center' });
+document.getElementById('food-view-edit-btn').addEventListener('click', () => {
+  const item = allItems.find(i => i.id === currentViewId);
+  foodViewModal.classList.add('hidden');
+  openEditModal(item);
+});
+
+document.getElementById('food-add-details-btn').addEventListener('click', () => {
+  const item = allItems.find(i => i.id === currentViewId);
+  foodViewModal.classList.add('hidden');
+  openVisitModal(item, null);
+});
+
+document.getElementById('food-view-skip-btn').addEventListener('click', async () => {
+  const item = allItems.find(i => i.id === currentViewId);
+  const me = getCurrentUser();
+  const withoutMine = (item.visits || []).filter(v => v.user !== me);
+  const updatedVisits = [...withoutMine, { user: me, skipped: true, visitedAt: new Date().toISOString() }];
+  await updateDoc(doc(db, 'foodItems', item.id), { visits: updatedVisits });
+});
+
+// =================================================================
+// EDIT-DETAILS MODAL — name / category / cost / locations / visibility
+// =================================================================
+const foodEditModal = document.getElementById('food-edit-modal');
+const foodEditForm = document.getElementById('food-edit-form');
+
+document.getElementById('food-add-btn').addEventListener('click', () => openEditModal(null));
+
+function openEditModal(item) {
+  currentEditId = item ? item.id : null;
+  document.getElementById('food-edit-modal-title').textContent = item ? 'Edit details' : 'Add somewhere to try';
+  document.getElementById('food-field-name').value = item ? item.name : '';
+  document.getElementById('food-field-id').value = item ? item.id : '';
+  document.getElementById('food-field-category').value = item ? item.category : 'restaurant';
+  document.getElementById('food-delete-btn').classList.toggle('hidden', !item);
+  selectedLocations = item && item.locations && item.locations.length > 0 ? [...item.locations] : [''];
+  selectedVisibility = item ? (item.visibility || 'shared') : 'shared';
+  document.getElementById('food-field-visibility').value = selectedVisibility;
+  setCostUI(item ? (item.cost || null) : null);
+  renderLocationFields();
+  foodEditModal.classList.remove('hidden');
 }
 
-async function deleteVisitEntry(item, idx) {
-  if (!confirm('Delete this visit?')) return;
-  const id = document.getElementById('food-field-id').value;
-  const updatedVisits = item.visits.filter((_, i) => i !== idx);
-  const stillHasRealVisit = updatedVisits.some(v => !v.skipped);
-  await updateDoc(doc(db, 'foodItems', id), {
-    visits: updatedVisits,
-    status: stillHasRealVisit ? 'visited' : 'to_try'
-  });
-  if (editingVisitIndex === idx) {
-    editingVisitIndex = null;
-    SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
-    document.getElementById('food-add-visit-btn').textContent = 'Add visit';
-  }
-}
-
-foodForm.addEventListener('submit', async e => {
+foodEditForm.addEventListener('submit', async e => {
   e.preventDefault();
   const id = document.getElementById('food-field-id').value;
   const name = document.getElementById('food-field-name').value.trim();
@@ -351,6 +346,9 @@ foodForm.addEventListener('submit', async e => {
     await updateDoc(doc(db, 'foodItems', id), {
       name, category, cost: selectedCost, locations, visibility: selectedVisibility
     });
+    foodEditModal.classList.add('hidden');
+    const fresh = allItems.find(i => i.id === id) || { id, name, category, cost: selectedCost, locations, visibility: selectedVisibility, addedBy: getCurrentUser(), visits: [] };
+    openViewModal({ ...fresh, name, category, cost: selectedCost, locations, visibility: selectedVisibility });
   } else {
     await addDoc(colRef, {
       name,
@@ -363,21 +361,53 @@ foodForm.addEventListener('submit', async e => {
       createdAt: serverTimestamp(),
       visits: []
     });
+    foodEditModal.classList.add('hidden');
   }
-  foodModal.classList.add('hidden');
 });
 
 document.getElementById('food-delete-btn').addEventListener('click', async () => {
   const id = document.getElementById('food-field-id').value;
   if (id && confirm('Delete this place?')) {
     await deleteDoc(doc(db, 'foodItems', id));
-    foodModal.classList.add('hidden');
+    foodEditModal.classList.add('hidden');
   }
 });
 
-document.getElementById('food-add-visit-btn').addEventListener('click', async () => {
-  const id = document.getElementById('food-field-id').value;
+// =================================================================
+// VISIT MODAL — add or edit a single visit entry (date, scores, review)
+// =================================================================
+const foodVisitModal = document.getElementById('food-visit-modal');
+const foodVisitForm = document.getElementById('food-visit-form');
+
+function openVisitModal(item, editIdx) {
+  currentVisitEditIdx = editIdx;
+  document.getElementById('food-visit-itemid').value = item.id;
+  document.getElementById('food-visit-editidx').value = editIdx === null ? '' : String(editIdx);
+
+  if (editIdx !== null) {
+    const entry = item.visits[editIdx];
+    document.getElementById('food-visit-modal-title').textContent = 'Edit visit';
+    document.getElementById('food-visit-date').value = entry.visitedAt ? entry.visitedAt.slice(0, 10) : todayDateInputValue();
+    SCORE_FIELDS.forEach(f => {
+      document.getElementById(`food-score-${f}`).value = entry.scores && entry.scores[f] !== undefined ? entry.scores[f] : '';
+    });
+    document.getElementById('food-visit-review').value = entry.review || '';
+  } else {
+    document.getElementById('food-visit-modal-title').textContent = 'Add details';
+    document.getElementById('food-visit-date').value = todayDateInputValue();
+    SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
+    document.getElementById('food-visit-review').value = '';
+  }
+  foodVisitModal.classList.remove('hidden');
+}
+
+foodVisitForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('food-visit-itemid').value;
   const item = allItems.find(i => i.id === id);
+  const editIdxRaw = document.getElementById('food-visit-editidx').value;
+  const editIdx = editIdxRaw === '' ? null : parseInt(editIdxRaw, 10);
+
   const scores = {};
   let filledCount = 0;
   SCORE_FIELDS.forEach(f => {
@@ -389,33 +419,33 @@ document.getElementById('food-add-visit-btn').addEventListener('click', async ()
   if (filledCount === 0) { alert('Add at least one score first.'); return; }
 
   const overall = SCORE_FIELDS.reduce((s, f) => s + scores[f], 0) / SCORE_FIELDS.length;
-  const review = document.getElementById('food-field-review').value.trim();
+  const review = document.getElementById('food-visit-review').value.trim();
+  const dateValue = document.getElementById('food-visit-date').value || todayDateInputValue();
   const me = getCurrentUser();
 
   let updatedVisits;
-  if (editingVisitIndex !== null) {
+  if (editIdx !== null) {
     updatedVisits = [...item.visits];
-    updatedVisits[editingVisitIndex] = {
-      ...updatedVisits[editingVisitIndex],
-      scores, overall, review
-    };
-    editingVisitIndex = null;
+    updatedVisits[editIdx] = { ...updatedVisits[editIdx], scores, overall, review, visitedAt: dateValue };
   } else {
     const withoutMineSkipped = (item.visits || []).filter(v => !(v.user === me && v.skipped));
-    const newVisit = { user: me, scores, overall, review, visitedAt: new Date().toISOString() };
+    const newVisit = { user: me, scores, overall, review, visitedAt: dateValue };
     updatedVisits = [...withoutMineSkipped, newVisit];
   }
 
   await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits, status: 'visited' });
-  document.getElementById('food-add-visit-btn').textContent = 'Add visit';
-  document.getElementById('food-rate-own-label').textContent = `${getCurrentUser()}'s visit`;
+  foodVisitModal.classList.add('hidden');
+
+  const fresh = { ...item, visits: updatedVisits, status: 'visited' };
+  openViewModal(fresh);
 });
 
-document.getElementById('food-skip-btn').addEventListener('click', async () => {
-  const id = document.getElementById('food-field-id').value;
-  const item = allItems.find(i => i.id === id);
-  const me = getCurrentUser();
-  const withoutMine = (item.visits || []).filter(v => v.user !== me);
-  const updatedVisits = [...withoutMine, { user: me, skipped: true, visitedAt: new Date().toISOString() }];
-  await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits });
-});
+async function deleteVisitEntry(item, idx) {
+  if (!confirm('Delete this visit?')) return;
+  const updatedVisits = item.visits.filter((_, i) => i !== idx);
+  const stillHasRealVisit = updatedVisits.some(v => !v.skipped);
+  await updateDoc(doc(db, 'foodItems', item.id), {
+    visits: updatedVisits,
+    status: stillHasRealVisit ? 'visited' : 'to_try'
+  });
+}

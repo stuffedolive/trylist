@@ -188,15 +188,37 @@
   </div>
 </div>
 
-<!-- FOOD ADD / DETAIL MODAL -->
-<div id="food-modal" class="modal hidden">
+<!-- FOOD VIEW MODAL -->
+<div id="food-view-modal" class="modal hidden">
   <div class="modal-sheet theme-food">
     <header class="modal-header sticky-header">
-      <button class="modal-close" data-close-modal="food-modal">✕</button>
-      <h3 id="food-modal-title">Add somewhere to try</h3>
-      <button type="submit" form="food-form" class="modal-save-btn">Save</button>
+      <button class="modal-close" data-close-modal="food-view-modal">✕</button>
+      <h3 id="food-view-title">Name</h3>
+      <button type="button" id="food-view-edit-btn" class="modal-save-btn">Edit</button>
     </header>
-    <form id="food-form">
+
+    <p class="meta-line" id="food-view-sub"></p>
+    <p class="meta-line" id="food-view-addedby"></p>
+
+    <div class="section-divider">Visits</div>
+    <div id="food-view-others"></div>
+
+    <button type="button" id="food-add-details-btn" class="btn-secondary">+ Add details</button>
+    <button type="button" id="food-view-skip-btn" class="btn-tertiary hidden">I wasn't there</button>
+
+    <div id="food-view-history" class="rate-history"></div>
+  </div>
+</div>
+
+<!-- FOOD EDIT-DETAILS MODAL (name / category / cost / locations / visibility) -->
+<div id="food-edit-modal" class="modal hidden">
+  <div class="modal-sheet theme-food">
+    <header class="modal-header sticky-header">
+      <button class="modal-close" data-close-modal="food-edit-modal">✕</button>
+      <h3 id="food-edit-modal-title">Add somewhere to try</h3>
+      <button type="submit" form="food-edit-form" class="modal-save-btn">Save</button>
+    </header>
+    <form id="food-edit-form">
       <label class="field-label">Name</label>
       <input type="text" id="food-field-name" class="field-input" required />
 
@@ -224,39 +246,39 @@
         <option value="private">Just me</option>
       </select>
 
-      <div id="food-edit-only" class="hidden">
-        <p class="meta-line" id="food-meta-addedby"></p>
-
-        <div class="section-divider">Visits</div>
-        <div id="food-ratings-block">
-          <div id="food-ratings-others"></div>
-
-          <div id="food-rate-own">
-            <label class="field-label" id="food-rate-own-label">Add a visit</label>
-
-            <div class="score-grid">
-              <label class="score-row">Taste <input type="number" min="0" max="10" step="1" id="food-score-taste" class="field-input score-input" /></label>
-              <label class="score-row">Value <input type="number" min="0" max="10" step="1" id="food-score-value" class="field-input score-input" /></label>
-              <label class="score-row">Atmosphere <input type="number" min="0" max="10" step="1" id="food-score-atmosphere" class="field-input score-input" /></label>
-              <label class="score-row">Service <input type="number" min="0" max="10" step="1" id="food-score-service" class="field-input score-input" /></label>
-              <label class="score-row">Would return <input type="number" min="0" max="10" step="1" id="food-score-wouldreturn" class="field-input score-input" /></label>
-            </div>
-
-            <label class="field-label">Review (optional)</label>
-            <textarea id="food-field-review" class="field-input field-textarea" rows="3"></textarea>
-
-            <button type="button" id="food-add-visit-btn" class="btn-secondary">Add visit</button>
-            <button type="button" id="food-skip-btn" class="btn-tertiary hidden">I wasn't there</button>
-          </div>
-
-          <div id="food-rate-history" class="rate-history"></div>
-        </div>
-      </div>
-
       <input type="hidden" id="food-field-id" />
       <div class="modal-actions">
         <button type="button" id="food-delete-btn" class="btn-danger hidden">Delete</button>
       </div>
+    </form>
+  </div>
+</div>
+
+<!-- FOOD VISIT MODAL (add or edit one visit entry) -->
+<div id="food-visit-modal" class="modal hidden">
+  <div class="modal-sheet theme-food">
+    <header class="modal-header sticky-header">
+      <button class="modal-close" data-close-modal="food-visit-modal">✕</button>
+      <h3 id="food-visit-modal-title">Add details</h3>
+      <button type="submit" form="food-visit-form" class="modal-save-btn">Save</button>
+    </header>
+    <form id="food-visit-form">
+      <label class="field-label">Date</label>
+      <input type="date" id="food-visit-date" class="field-input" required />
+
+      <div class="score-grid">
+        <label class="score-row">Taste <input type="number" min="0" max="10" step="1" id="food-score-taste" class="field-input score-input" /></label>
+        <label class="score-row">Value <input type="number" min="0" max="10" step="1" id="food-score-value" class="field-input score-input" /></label>
+        <label class="score-row">Atmosphere <input type="number" min="0" max="10" step="1" id="food-score-atmosphere" class="field-input score-input" /></label>
+        <label class="score-row">Service <input type="number" min="0" max="10" step="1" id="food-score-service" class="field-input score-input" /></label>
+        <label class="score-row">Would return <input type="number" min="0" max="10" step="1" id="food-score-wouldreturn" class="field-input score-input" /></label>
+      </div>
+
+      <label class="field-label">Review (optional)</label>
+      <textarea id="food-visit-review" class="field-input field-textarea" rows="3"></textarea>
+
+      <input type="hidden" id="food-visit-itemid" />
+      <input type="hidden" id="food-visit-editidx" />
     </form>
   </div>
 </div>
