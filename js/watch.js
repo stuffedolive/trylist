@@ -15,6 +15,7 @@ const colRef = collection(db, 'watchItems');
 let allItems = [];
 let selectedTags = [];
 let selectedFormat = 'movie';
+let selectedVisibility = 'shared';
 let selectedStatus = 'to_watch';   // for the add/edit form's status toggle
 let selectedRateLocation = 'home';
 let selectedStars = 0;
@@ -78,6 +79,10 @@ function renderTagPicker() {
     wrap.appendChild(chip);
   });
 }
+
+document.getElementById('watch-field-visibility').addEventListener('change', e => {
+  selectedVisibility = e.target.value;
+});
 
 document.querySelectorAll('#watch-field-format .segmented-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -204,6 +209,7 @@ function renderList() {
   const f = getFilters();
   const list = allItems.filter(item => {
     if (item.status !== f.status) return false;
+    if (item.visibility === 'private' && item.addedBy !== getCurrentUser()) return false;
     if (f.format !== 'all' && item.format !== f.format) return false;
     if (f.tag !== 'all' && !(item.tags || []).includes(f.tag)) return false;
     return true;
@@ -294,6 +300,8 @@ function openAddModal() {
   document.getElementById('watch-delete-btn').classList.add('hidden');
   document.getElementById('watch-edit-only').classList.add('hidden');
   selectedTags = [];
+  selectedVisibility = 'shared';
+  document.getElementById('watch-field-visibility').value = 'shared';
   setFormatUI('movie');
   renderTagPicker();
   watchModal.classList.remove('hidden');
@@ -307,6 +315,8 @@ function openDetailModal(item) {
   document.getElementById('watch-delete-btn').classList.remove('hidden');
   document.getElementById('watch-edit-only').classList.remove('hidden');
   selectedTags = [...(item.tags || [])];
+  selectedVisibility = item.visibility || 'shared';
+  document.getElementById('watch-field-visibility').value = selectedVisibility;
   setFormatUI(item.format);
   setStatusUI(item.status);
   renderTagPicker();
@@ -402,13 +412,14 @@ watchForm.addEventListener('submit', async e => {
 
   if (id) {
     await updateDoc(doc(db, 'watchItems', id), {
-      title, format: selectedFormat, tags: selectedTags
+      title, format: selectedFormat, tags: selectedTags, visibility: selectedVisibility
     });
   } else {
     await addDoc(colRef, {
       title,
       format: selectedFormat,
       tags: selectedTags,
+      visibility: selectedVisibility,
       status: 'to_watch',
       addedBy: getCurrentUser(),
       createdAt: serverTimestamp(),
