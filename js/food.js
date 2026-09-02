@@ -38,6 +38,12 @@ let selectedCost = null;
 let selectedVisibility = 'shared';
 let selectedLocations = [''];
 let currentEditId = null;
+let editingVisitIndex = null;
+
+function formatHistoryDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 let statusFilterIndex = 0;
 let categoryFilterIndex = 0;
@@ -283,26 +289,69 @@ function renderRatingsSection(item) {
   }
   otherWrap.innerHTML = `<p class="other-score-line"><strong>${other}</strong>: ${otherHtml}</p>`;
 
+  editingVisitIndex = null;
   document.getElementById('food-rate-own-label').textContent = `${me}'s visit`;
+  document.getElementById('food-add-visit-btn').textContent = 'Save visit';
   SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
   document.getElementById('food-field-review').value = '';
 
-  const all = (item.visits || []).slice().reverse();
+  const all = (item.visits || []).map((v, i) => ({ ...v, _idx: i })).reverse();
   const historyWrap = document.getElementById('food-rate-history');
   if (all.length === 0) {
     historyWrap.innerHTML = '';
   } else {
     historyWrap.innerHTML = '<div class="section-divider">History</div>' + all.map(v => {
-      if (v.skipped) {
-        return `<div class="rate-history-entry"><strong>${v.user}</strong> · wasn't there</div>`;
-      }
+      const isMine = v.user === me;
+      const dateLabel = formatHistoryDate(v.visitedAt);
+      const actions = isMine ? `<span class="rate-history-actions">
+          ${v.skipped ? '' : `<button type="button" class="history-edit-btn" data-idx="${v._idx}">Edit</button>`}
+          <button type="button" class="history-delete-btn" data-idx="${v._idx}">Delete</button>
+        </span>` : '';
+      const body = v.skipped
+        ? `${v.user} · wasn't there`
+        : `${v.user} · ${v.overall.toFixed(1)} / 10${v.review ? `<br/><span style="opacity:.8;">${escapeHtml(v.review)}</span>` : ''}`;
       return `
         <div class="rate-history-entry">
-          <strong>${v.user}</strong> · ${v.overall.toFixed(1)} / 10
-          ${v.review ? `<br/><span style="opacity:.8;">${escapeHtml(v.review)}</span>` : ''}
+          <div class="rate-history-top">
+            <strong class="rate-history-date">${dateLabel}</strong>
+            ${actions}
+          </div>
+          <div class="rate-history-body">${body}</div>
         </div>
       `;
     }).join('');
+
+    historyWrap.querySelectorAll('.history-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => startEditVisit(item, parseInt(btn.dataset.idx, 10)));
+    });
+    historyWrap.querySelectorAll('.history-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteVisitEntry(item, parseInt(btn.dataset.idx, 10)));
+    });
+  }
+}
+
+function startEditVisit(item, idx) {
+  const entry = item.visits[idx];
+  if (!entry || entry.skipped) return;
+  editingVisitIndex = idx;
+  SCORE_FIELDS.forEach(f => {
+    document.getElementById(`food-score-${f}`).value = entry.scores && entry.scores[f] !== undefined ? entry.scores[f] : '';
+  });
+  document.getElementById('food-field-review').value = entry.review || '';
+  document.getElementById('food-rate-own-label').textContent = `Editing ${entry.user}'s visit from ${formatHistoryDate(entry.visitedAt)}`;
+  document.getElementById('food-add-visit-btn').textContent = 'Update visit';
+  document.getElementById('food-rate-own').scrollIntoView?.({ block: 'center' });
+}
+
+async function deleteVisitEntry(item, idx) {
+  if (!confirm('Delete this visit?')) return;
+  const id = document.getElementById('food-field-id').value;
+  const updatedVisits = item.visits.filter((_, i) => i !== idx);
+  await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits });
+  if (editingVisitIndex === idx) {
+    editingVisitIndex = null;
+    SCORE_FIELDS.forEach(f => { document.getElementById(`food-score-${f}`).value = ''; });
+    document.getElementById('food-add-visit-btn').textContent = 'Save visit';
   }
 }
 
@@ -357,14 +406,26 @@ document.getElementById('food-add-visit-btn').addEventListener('click', async ()
 
   const overall = SCORE_FIELDS.reduce((s, f) => s + scores[f], 0) / SCORE_FIELDS.length;
   const review = document.getElementById('food-field-review').value.trim();
-
   const me = getCurrentUser();
-  const withoutMineSkipped = (item.visits || []).filter(v => !(v.user === me && v.skipped));
-  const newVisit = { user: me, scores, overall, review, visitedAt: new Date().toISOString() };
-  const updatedVisits = [...withoutMineSkipped, newVisit];
+
+  let updatedVisits;
+  if (editingVisitIndex !== null) {
+    updatedVisits = [...item.visits];
+    updatedVisits[editingVisitIndex] = {
+      ...updatedVisits[editingVisitIndex],
+      scores, overall, review
+    };
+    editingVisitIndex = null;
+  } else {
+    const withoutMineSkipped = (item.visits || []).filter(v => !(v.user === me && v.skipped));
+    const newVisit = { user: me, scores, overall, review, visitedAt: new Date().toISOString() };
+    updatedVisits = [...withoutMineSkipped, newVisit];
+  }
 
   await updateDoc(doc(db, 'foodItems', id), { visits: updatedVisits, status: 'visited' });
   setFoodStatusUI('visited');
+  document.getElementById('food-add-visit-btn').textContent = 'Save visit';
+  document.getElementById('food-rate-own-label').textContent = `${getCurrentUser()}'s visit`;
 });
 
 document.getElementById('food-skip-btn').addEventListener('click', async () => {

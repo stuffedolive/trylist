@@ -19,6 +19,12 @@ let selectedVisibility = 'shared';
 let selectedStatus = 'to_watch';   // for the add/edit form's status toggle
 let selectedRateLocation = 'home';
 let selectedStars = 0;
+let editingRatingIndex = null;
+
+function formatHistoryDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
 let currentEditId = null;
 let statusFilterIndex = 0;  // filter bar: To Watch / Watched
 let formatFilterIndex = 0;  // filter bar: Movie+Series / Movies / Series
@@ -366,7 +372,9 @@ function renderRatingsSection(item) {
     </div>
   `;
 
+  editingRatingIndex = null;
   document.getElementById('watch-rate-own-label').textContent = `${me}'s rating`;
+  document.getElementById('watch-add-rating-btn').textContent = 'Save rating';
   selectedStars = 0;
   selectedRateLocation = 'home';
   document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
@@ -375,18 +383,67 @@ function renderRatingsSection(item) {
   document.getElementById('rate-field-review').value = '';
   renderStarPicker();
 
-  // Full chronological history, both users
-  const all = (item.ratings || []).slice().reverse();
+  // Full chronological history, both users — each entry knows its real array index
+  const all = (item.ratings || []).map((r, i) => ({ ...r, _idx: i })).reverse();
   const historyWrap = document.getElementById('watch-rate-history');
   if (all.length === 0) {
     historyWrap.innerHTML = '';
   } else {
-    historyWrap.innerHTML = '<div class="section-divider">History</div>' + all.map(r => `
-      <div class="rate-history-entry">
-        <strong>${r.user}</strong> · ${starsHtml(r.stars, 'small')} (${r.stars}) · ${r.location}
-        ${r.review ? `<br/><span style="opacity:.8;">${escapeHtml(r.review)}</span>` : ''}
-      </div>
-    `).join('');
+    historyWrap.innerHTML = '<div class="section-divider">History</div>' + all.map(r => {
+      const isMine = r.user === me;
+      const dateLabel = formatHistoryDate(r.watchedAt);
+      const body = r.skipped
+        ? `${r.user} · didn't watch`
+        : `${r.user} · ${starsHtml(r.stars, 'small')} (${r.stars}) · ${r.location}${r.review ? `<br/><span style="opacity:.8;">${escapeHtml(r.review)}</span>` : ''}`;
+      return `
+        <div class="rate-history-entry">
+          <div class="rate-history-top">
+            <strong class="rate-history-date">${dateLabel}</strong>
+            ${isMine ? `<span class="rate-history-actions">
+              <button type="button" class="history-edit-btn" data-idx="${r._idx}">Edit</button>
+              <button type="button" class="history-delete-btn" data-idx="${r._idx}">Delete</button>
+            </span>` : ''}
+          </div>
+          <div class="rate-history-body">${body}</div>
+        </div>
+      `;
+    }).join('');
+
+    historyWrap.querySelectorAll('.history-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => startEditRating(item, parseInt(btn.dataset.idx, 10)));
+    });
+    historyWrap.querySelectorAll('.history-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteRatingEntry(item, parseInt(btn.dataset.idx, 10)));
+    });
+  }
+}
+
+function startEditRating(item, idx) {
+  const entry = item.ratings[idx];
+  if (!entry || entry.skipped) return;
+  editingRatingIndex = idx;
+  selectedStars = entry.stars || 0;
+  selectedRateLocation = entry.location || 'home';
+  document.querySelectorAll('#rate-field-location .segmented-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.value === selectedRateLocation)
+  );
+  document.getElementById('rate-field-review').value = entry.review || '';
+  renderStarPicker();
+  document.getElementById('watch-rate-own-label').textContent = `Editing ${entry.user}'s entry from ${formatHistoryDate(entry.watchedAt)}`;
+  document.getElementById('watch-add-rating-btn').textContent = 'Update rating';
+  document.getElementById('star-picker').scrollIntoView?.({ block: 'center' });
+}
+
+async function deleteRatingEntry(item, idx) {
+  if (!confirm('Delete this rating?')) return;
+  const id = document.getElementById('watch-field-id').value;
+  const updatedRatings = item.ratings.filter((_, i) => i !== idx);
+  await updateDoc(doc(db, 'watchItems', id), { ratings: updatedRatings });
+  if (editingRatingIndex === idx) {
+    editingRatingIndex = null;
+    selectedStars = 0;
+    renderStarPicker();
+    document.getElementById('watch-add-rating-btn').textContent = 'Save rating';
   }
 }
 
@@ -444,21 +501,35 @@ document.getElementById('watch-add-rating-btn').addEventListener('click', async 
   const item = allItems.find(i => i.id === id);
   const review = document.getElementById('rate-field-review').value.trim();
 
-  const newRating = {
-    user: getCurrentUser(),
-    stars: selectedStars,
-    location: selectedRateLocation,
-    review,
-    watchedAt: new Date().toISOString()
-  };
+  let updatedRatings;
+  if (editingRatingIndex !== null) {
+    updatedRatings = [...item.ratings];
+    updatedRatings[editingRatingIndex] = {
+      ...updatedRatings[editingRatingIndex],
+      stars: selectedStars,
+      location: selectedRateLocation,
+      review
+    };
+    editingRatingIndex = null;
+  } else {
+    const newRating = {
+      user: getCurrentUser(),
+      stars: selectedStars,
+      location: selectedRateLocation,
+      review,
+      watchedAt: new Date().toISOString()
+    };
+    const withoutMineSkipped = (item.ratings || []).filter(r => !(r.user === getCurrentUser() && r.skipped));
+    updatedRatings = [...withoutMineSkipped, newRating];
+  }
 
-  const withoutMineSkipped = (item.ratings || []).filter(r => !(r.user === getCurrentUser() && r.skipped));
-  const updatedRatings = [...withoutMineSkipped, newRating];
   await updateDoc(doc(db, 'watchItems', id), {
     ratings: updatedRatings,
     status: 'watched'
   });
   setStatusUI('watched');
+  document.getElementById('watch-add-rating-btn').textContent = 'Save rating';
+  document.getElementById('watch-rate-own-label').textContent = `${getCurrentUser()}'s rating`;
 });
 
 document.getElementById('watch-skip-btn').addEventListener('click', async () => {
